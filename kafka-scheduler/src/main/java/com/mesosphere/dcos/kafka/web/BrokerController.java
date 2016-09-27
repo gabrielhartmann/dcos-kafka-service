@@ -1,8 +1,6 @@
 package com.mesosphere.dcos.kafka.web;
 
-import com.mesosphere.dcos.kafka.commons.state.KafkaState;
 import com.mesosphere.dcos.kafka.scheduler.KafkaScheduler;
-import com.mesosphere.dcos.kafka.state.FrameworkState;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.mesos.Protos;
@@ -20,19 +18,16 @@ import java.util.Optional;
 @Produces("application/json")
 public class BrokerController {
   private final Log log = LogFactory.getLog(BrokerController.class);
+  private final KafkaScheduler kafkaScheduler;
 
-  private final KafkaState kafkaState;
-  private final FrameworkState frameworkState;
-
-  public BrokerController(KafkaState kafkaState, FrameworkState frameworkState) {
-    this.kafkaState = kafkaState;
-    this.frameworkState = frameworkState;
+  public BrokerController(KafkaScheduler kafkaScheduler) {
+    this.kafkaScheduler = kafkaScheduler;
   }
 
   @GET
   public Response listBrokers() {
     try {
-      return Response.ok(kafkaState.getBrokerIds(), MediaType.APPLICATION_JSON).build();
+      return Response.ok(kafkaScheduler.getKafkaState().getBrokerIds(), MediaType.APPLICATION_JSON).build();
     } catch (Exception ex) {
       log.error("Failed to fetch broker ids", ex);
       return Response.serverError().build();
@@ -43,7 +38,7 @@ public class BrokerController {
   @Path("/{id}")
   public Response getBroker(@PathParam("id") String id) {
     try {
-      Optional<JSONObject> brokerObj = kafkaState.getBroker(id);
+      Optional<JSONObject> brokerObj = kafkaScheduler.getKafkaState().getBroker(id);
       if (brokerObj.isPresent()) {
         return Response.ok(brokerObj, MediaType.APPLICATION_JSON).build();
       } else {
@@ -63,15 +58,15 @@ public class BrokerController {
 
     try {
       int idVal = Integer.parseInt(id);
-      Protos.TaskInfo taskInfo = frameworkState.getTaskInfoForBroker(idVal);
-      if (taskInfo == null) {
+      Optional<Protos.TaskInfo> taskInfoOptional = kafkaScheduler.getFrameworkState().getTaskInfoForBroker(idVal);
+      if (!taskInfoOptional.isPresent()) {
         // Tests expect an array containing a single null element in this case. May make sense to
         // revisit this strange behavior someday...
         log.error(String.format(
             "Broker %d doesn't exist in FrameworkState, returning null entry in response", idVal));
         return killResponse(Arrays.asList((String)null));
       }
-      return killBroker(taskInfo, Boolean.parseBoolean(replace));
+      return killBroker(taskInfoOptional.get(), Boolean.parseBoolean(replace));
     } catch (Exception ex) {
       log.error("Failed to kill brokers", ex);
       return Response.serverError().build();
