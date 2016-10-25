@@ -91,28 +91,6 @@ public class FrameworkState extends SchedulerState {
     }
 
     /**
-     * Returns the full Task ID (including UUID) for the provided Broker index, or {@code null} if none is found.
-     */
-    public TaskID getTaskIdForBroker(Integer brokerId) throws Exception {
-        Optional<TaskInfo> taskInfoOptional = getTaskInfoForBroker(brokerId);
-        return taskInfoOptional.isPresent() ? taskInfoOptional.get().getTaskId() : null;
-    }
-
-    /**
-     * Returns the TaskInfo for the provided Broker index, or {@code null} if none is found.
-     */
-    public Optional<TaskInfo> getTaskInfoForBroker(Integer brokerId) throws Exception {
-        try {
-            return getStateStore().fetchTask(OfferUtils.brokerIdToTaskName(brokerId));
-        } catch (StateStoreException e) {
-            log.warn(String.format(
-                    "Failed to get TaskInfo for broker %d. This is expected when the service is "
-                            + "starting for the first time.", brokerId), e);
-            return Optional.empty();
-        }
-    }
-
-    /**
      * Returns the TaskStatus for the provided Broker index, or {@code null} if none is found.
      */
     public Optional<TaskStatus> getTaskStatusForBroker(Integer brokerId) throws Exception {

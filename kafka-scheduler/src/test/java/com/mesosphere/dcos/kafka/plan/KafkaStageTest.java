@@ -8,6 +8,7 @@ import org.apache.mesos.offer.OfferRequirement;
 import org.apache.mesos.reconciliation.Reconciler;
 import org.apache.mesos.scheduler.plan.*;
 import org.apache.mesos.scheduler.plan.strategy.SerialStrategy;
+import org.apache.mesos.state.StateStore;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -30,6 +31,7 @@ public class KafkaStageTest {
     @Mock KafkaSchedulerConfiguration schedulerConfiguration;
     @Mock ServiceConfiguration serviceConfiguration;
     @Mock FrameworkState frameworkState;
+    @Mock StateStore stateStore;
     @Mock PersistentOfferRequirementProvider offerRequirementProvider;
     @Mock OfferRequirement offerRequirement;
     @Mock Reconciler reconciler;
@@ -42,7 +44,7 @@ public class KafkaStageTest {
         when(serviceConfiguration.getCount()).thenReturn(3);
         when(schedulerConfiguration.getServiceConfiguration()).thenReturn(serviceConfiguration);
         when(offerRequirementProvider.getNewOfferRequirement(anyString(), anyInt())).thenReturn(offerRequirement);
-        when(frameworkState.getTaskInfoForBroker(anyInt())).thenReturn(Optional.empty());
+        when(stateStore.fetchTask(anyString())).thenReturn(Optional.empty());
         plan = getTestPlan();
     }
 

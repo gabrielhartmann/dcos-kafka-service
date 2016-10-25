@@ -6,25 +6,26 @@ import com.mesosphere.dcos.kafka.state.ClusterState;
 import com.mesosphere.dcos.kafka.state.FrameworkState;
 import com.mesosphere.dcos.kafka.test.ConfigTestUtils;
 import com.mesosphere.dcos.kafka.test.KafkaTestUtils;
+import org.apache.curator.test.TestingServer;
 import org.apache.mesos.Protos;
+import org.apache.mesos.curator.CuratorStateStore;
 import org.apache.mesos.dcos.Capabilities;
 import org.apache.mesos.offer.OfferRequirement;
 import org.apache.mesos.offer.TaskUtils;
 import org.apache.mesos.scheduler.plan.DefaultBlock;
 import org.apache.mesos.state.StateStore;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.apache.mesos.testing.CuratorTestUtils;
+import org.junit.*;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
@@ -34,6 +35,9 @@ public class KafkaUpdateBlockTest {
     public static final String TASK_NAME = "test-task-name";
     public static final Protos.TaskID TASK_ID = TaskUtils.toTaskId(TASK_NAME);
     public static final Protos.SlaveID AGENT_ID = Protos.SlaveID.newBuilder().setValue("test-slave-id").build();
+    private static final String testFrameworkName = "kafka";
+    private static final String testZkConnectionString = "localhost:40000";
+    private static TestingServer testingServer;
 
     @Mock private FrameworkState frameworkState;
     @Mock private KafkaConfigState configState;
@@ -53,11 +57,23 @@ public class KafkaUpdateBlockTest {
     private static final Collection<Protos.Offer.Operation> nonEmptyOperations =
             Arrays.asList(operation);
 
+    @BeforeClass
+    public static void beforeAll() throws Exception {
+        testingServer = new TestingServer(40000);
+    }
+
+    @AfterClass
+    public static void afterAll() throws IOException {
+        testingServer.close();
+    }
+
     @Before
     public void beforeEach() throws Exception {
         MockitoAnnotations.initMocks(this);
-        StateStore stateStore = mock(StateStore.class);
-        when(stateStore.fetchFrameworkId()).thenReturn(Optional.of(KafkaTestUtils.testFrameworkId));
+        CuratorTestUtils.clear(testingServer);
+
+        StateStore stateStore = new CuratorStateStore(testFrameworkName, testZkConnectionString);
+        stateStore.storeFrameworkId(KafkaTestUtils.testFrameworkId);
         when(frameworkState.getStateStore()).thenReturn(stateStore);
         when(frameworkState.getTaskStatusForBroker(any())).thenReturn(Optional.empty());
         when(configState.fetch(UUID.fromString(KafkaTestUtils.testConfigName))).thenReturn(
@@ -100,20 +116,6 @@ public class KafkaUpdateBlockTest {
         updateBlock.updateOfferStatus(nonEmptyOperations);
         Assert.assertTrue(updateBlock.isInProgress());
         updateBlock.update(getRunningTaskStatus("bad-task-id"));
-        Assert.assertTrue(updateBlock.isInProgress());
-    }
-
-    @Test
-    public void testReconciliationUpdate() {
-        Assert.assertTrue(updateBlock.isPending());
-        updateBlock.start();
-        updateBlock.updateOfferStatus(nonEmptyOperations);
-        Assert.assertTrue(updateBlock.isInProgress());
-        Protos.TaskStatus reconciliationTaskStatus = getRunningTaskStatus(TASK_ID.getValue());
-        reconciliationTaskStatus = Protos.TaskStatus.newBuilder(reconciliationTaskStatus)
-                .setReason(Protos.TaskStatus.Reason.REASON_RECONCILIATION)
-                .build();
-        updateBlock.update(reconciliationTaskStatus);
         Assert.assertTrue(updateBlock.isInProgress());
     }
 

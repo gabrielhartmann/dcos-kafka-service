@@ -1,13 +1,13 @@
 package com.mesosphere.dcos.kafka.web;
 
 import com.codahale.metrics.health.HealthCheck;
-import com.mesosphere.dcos.kafka.plan.KafkaUpdatePhase;
 import com.mesosphere.dcos.kafka.scheduler.KafkaScheduler;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.mesos.scheduler.plan.Block;
 import org.apache.mesos.scheduler.plan.Phase;
 import org.apache.mesos.scheduler.plan.Plan;
+import org.apache.mesos.scheduler.plan.ReconciliationPhase;
 
 public class BrokerCheck extends HealthCheck {
   public static final String NAME = "broker_count";
@@ -53,7 +53,7 @@ public class BrokerCheck extends HealthCheck {
     Plan plan = kafkaScheduler.getPlanManager().getPlan();
 
     for (Phase phase : plan.getChildren()) {
-      if (phase instanceof KafkaUpdatePhase) {
+      if (!(phase instanceof ReconciliationPhase)) {
         return phase;
       }
     }

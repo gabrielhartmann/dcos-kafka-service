@@ -42,11 +42,6 @@ public class KafkaSchedulerTest {
             .setSlaveId(Protos.SlaveID.newBuilder().setValue("test-agent-id"))
             .build();
 
-    private static final Protos.TaskStatus testTaskStatus = Protos.TaskStatus.newBuilder()
-            .setTaskId(testTaskId)
-            .setState(Protos.TaskState.TASK_RUNNING)
-            .build();
-
     private static final Protos.MasterInfo masterInfo = Protos.MasterInfo.newBuilder()
             .setId("test-master-id")
             .setIp(100)
@@ -73,7 +68,7 @@ public class KafkaSchedulerTest {
     }
 
     @BeforeClass
-    public static void before() {
+    public static void beforeAll() {
         final Main main = (Main) RULE.getApplication();
         dropwizardConfiguration = main.getDropwizardConfiguration();
         environment = main.getEnvironment();

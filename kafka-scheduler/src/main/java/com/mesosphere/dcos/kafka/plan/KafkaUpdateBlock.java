@@ -11,6 +11,7 @@ import org.apache.mesos.offer.InvalidRequirementException;
 import org.apache.mesos.offer.OfferRequirement;
 import org.apache.mesos.scheduler.plan.DefaultBlock;
 import org.apache.mesos.scheduler.plan.Status;
+import org.apache.mesos.state.StateStoreException;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -87,7 +88,15 @@ public class KafkaUpdateBlock extends DefaultBlock {
 
     private static TaskInfo fetchTaskInfo(FrameworkState state, int brokerId) {
         try {
-            Optional<TaskInfo> taskInfoOptional = state.getTaskInfoForBroker(brokerId);
+            Optional<TaskInfo> taskInfoOptional = Optional.empty();
+            try {
+                taskInfoOptional = state.getStateStore().fetchTask(OfferUtils.brokerIdToTaskName(brokerId));
+            } catch (StateStoreException e) {
+                LOGGER.warn(String.format(
+                        "Failed to get TaskInfo for broker %d. This is expected when the service is "
+                                + "starting for the first time.", brokerId), e);
+            }
+
             if (taskInfoOptional.isPresent()) {
                 return taskInfoOptional.get();
             } else {
