@@ -30,16 +30,15 @@ import org.apache.mesos.config.ConfigStoreException;
 import org.apache.mesos.config.RecoveryConfiguration;
 import org.apache.mesos.config.api.ConfigResource;
 import org.apache.mesos.dcos.DcosCluster;
+import org.apache.mesos.dcos.DcosConstants;
 import org.apache.mesos.offer.*;
 import org.apache.mesos.reconciliation.DefaultReconciler;
 import org.apache.mesos.reconciliation.Reconciler;
-import org.apache.mesos.scheduler.DefaultTaskKiller;
-import org.apache.mesos.scheduler.SchedulerDriverFactory;
-import org.apache.mesos.scheduler.SchedulerErrorCode;
-import org.apache.mesos.scheduler.TaskKiller;
+import org.apache.mesos.scheduler.*;
 import org.apache.mesos.scheduler.api.TaskResource;
 import org.apache.mesos.scheduler.plan.*;
 import org.apache.mesos.scheduler.plan.api.PlanResource;
+import org.apache.mesos.scheduler.plan.strategy.SerialStrategy;
 import org.apache.mesos.scheduler.recovery.*;
 import org.apache.mesos.scheduler.recovery.api.RecoveryResource;
 import org.apache.mesos.scheduler.recovery.constrain.LaunchConstrainer;
@@ -82,6 +81,7 @@ public class KafkaScheduler implements Scheduler, Runnable {
     private PlanManager planManager;
     private DefaultPlanScheduler planScheduler;
     private DefaultRecoveryScheduler repairScheduler;
+    private final DefaultScheduler defaultScheduler;
     private SchedulerDriver driver;
 
     private boolean isRegistered = false;
@@ -128,8 +128,13 @@ public class KafkaScheduler implements Scheduler, Runnable {
                         offerRequirementProvider));
         // If config validation had errors, expose them via the Stage.
         this.installPlan = stageErrors.isEmpty()
-                ? DefaultPlan.fromList(phases)
-                : DefaultPlan.withErrors(phases, stageErrors);
+                ? new DefaultPlan("deployment", phases)
+                : new DefaultPlan("deployment", phases, new SerialStrategy<>(), stageErrors);
+
+        defaultScheduler = DefaultScheduler.create(
+                configuration.getServiceConfiguration().getName(),
+                new DefaultPlanManager(installPlan),
+                DcosConstants.MESOS_MASTER_ZK_CONNECTION_STRING);
 
         recoveryStatusRef = new AtomicReference<>(new RecoveryStatus(Collections.emptyList(), Collections.emptyList()));
         taskFailureListener = new DefaultTaskFailureListener(frameworkState.getStateStore());
@@ -138,6 +143,7 @@ public class KafkaScheduler implements Scheduler, Runnable {
     }
 
     private void initialize(SchedulerDriver driver) {
+        defaultScheduler.in
         taskKiller = new DefaultTaskKiller(frameworkState.getStateStore(), taskFailureListener, driver);
         planScheduler = new DefaultPlanScheduler(
                 offerAccepter,
