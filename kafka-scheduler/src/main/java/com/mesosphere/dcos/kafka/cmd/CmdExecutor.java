@@ -1,9 +1,9 @@
 package com.mesosphere.dcos.kafka.cmd;
 
+import com.mesosphere.dcos.kafka.commons.state.KafkaState;
 import com.mesosphere.dcos.kafka.config.KafkaConfiguration;
 import com.mesosphere.dcos.kafka.config.KafkaSchedulerConfiguration;
 import com.mesosphere.dcos.kafka.config.ServiceConfiguration;
-import com.mesosphere.dcos.kafka.scheduler.KafkaScheduler;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.StopWatch;
 import org.apache.commons.logging.Log;
@@ -22,14 +22,14 @@ public class CmdExecutor {
 
   private final String binPath;
   private final String zkPath;
-  private final KafkaScheduler kafkaScheduler;
+  private final KafkaState kafkaState;
 
-  public CmdExecutor(KafkaSchedulerConfiguration configuration, KafkaScheduler kafkaScheduler) {
-    this.kafkaScheduler = kafkaScheduler;
+  public CmdExecutor(KafkaSchedulerConfiguration configuration, KafkaState kafkaState) {
     final KafkaConfiguration kafkaConfiguration = configuration.getKafkaConfiguration();
     final ServiceConfiguration serviceConfiguration = configuration.getServiceConfiguration();
     this.binPath = kafkaConfiguration.getKafkaSandboxPath() + "/bin/";
     this.zkPath = configuration.getFullKafkaZookeeperPath();
+    this.kafkaState = kafkaState;
   }
 
   public JSONObject createTopic(String name, int partitionCount, int replicationFactor) throws Exception {
@@ -81,7 +81,7 @@ public class CmdExecutor {
 
   public JSONObject producerTest(String topicName, int messages) throws Exception {
     // e.g. ./kafka-producer-perf-test.sh --topic topic0 --num-records 1000 --producer-props bootstrap.servers=ip-10-0-2-171.us-west-2.compute.internal:9092,ip-10-0-2-172.us-west-2.compute.internal:9093,ip-10-0-2-173.us-west-2.compute.internal:9094 --throughput 100000 --record-size 1024
-    List<String> brokerEndpoints = kafkaScheduler.getKafkaState().getBrokerEndpoints();
+    List<String> brokerEndpoints = kafkaState.getBrokerEndpoints();
     String brokers = StringUtils.join(brokerEndpoints, ",");
     String bootstrapServers = "bootstrap.servers=" + brokers;
 
@@ -104,10 +104,10 @@ public class CmdExecutor {
   public JSONArray getOffsets(String topicName, Long time) throws Exception {
     // e.g. ./kafka-run-class.sh kafka.tools.GetOffsetShell --broker-list ip-10-0-1-71.us-west-2.compute.internal:9092,ip-10-0-1-72.us-west-2.compute.internal:9093,ip-10-0-1-68.us-west-2.compute.internal:9094 --topic topic0 --time -1 --partitions 0
 
-    List<String> brokerEndpoints = kafkaScheduler.getKafkaState().getBrokerEndpoints();
+    List<String> brokerEndpoints = kafkaState.getBrokerEndpoints();
     String brokers = StringUtils.join(brokerEndpoints, ",");
 
-    List<String> cmd = new ArrayList<String>();
+    List<String> cmd = new ArrayList<>();
     cmd.add(binPath + "kafka-run-class.sh");
     cmd.add("kafka.tools.GetOffsetShell");
     cmd.add("--topic");

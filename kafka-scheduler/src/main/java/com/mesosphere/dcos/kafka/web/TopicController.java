@@ -1,7 +1,7 @@
 package com.mesosphere.dcos.kafka.web;
 
 import com.mesosphere.dcos.kafka.cmd.CmdExecutor;
-import com.mesosphere.dcos.kafka.scheduler.KafkaScheduler;
+import com.mesosphere.dcos.kafka.commons.state.KafkaState;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.json.JSONArray;
@@ -18,17 +18,17 @@ public class TopicController {
   private static final Log log = LogFactory.getLog(TopicController.class);
 
   private final CmdExecutor cmdExecutor;
-  private final KafkaScheduler kafkaScheduler;
+  private final KafkaState kafkaState;
 
-  public TopicController(CmdExecutor cmdExecutor, KafkaScheduler kafkaScheduler) {
+  public TopicController(CmdExecutor cmdExecutor, KafkaState kafkaState) {
     this.cmdExecutor = cmdExecutor;
-    this.kafkaScheduler = kafkaScheduler;
+    this.kafkaState = kafkaState;
   }
 
   @GET
   public Response topics() {
     try {
-      JSONArray topics = kafkaScheduler.getKafkaState().getTopics();
+      JSONArray topics = kafkaState.getTopics();
       return Response.ok(topics.toString(), MediaType.APPLICATION_JSON).build();
     } catch (Exception ex) {
       log.error("Failed to fetch topics with exception: " + ex);
@@ -81,7 +81,7 @@ public class TopicController {
   @Path("/{name}")
   public Response getTopic(@PathParam("name") String topicName) {
     try {
-      JSONObject topic = kafkaScheduler.getKafkaState().getTopic(topicName);
+      JSONObject topic = kafkaState.getTopic(topicName);
       return Response.ok(topic.toString(), MediaType.APPLICATION_JSON).build();
     } catch (Exception ex) {
       log.error("Failed to fetch topic: " + topicName + " with exception: " + ex);

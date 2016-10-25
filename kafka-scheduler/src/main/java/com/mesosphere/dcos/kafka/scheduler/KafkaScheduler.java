@@ -1,5 +1,6 @@
 package com.mesosphere.dcos.kafka.scheduler;
 
+import com.mesosphere.dcos.kafka.cmd.CmdExecutor;
 import com.mesosphere.dcos.kafka.commons.state.KafkaState;
 import com.mesosphere.dcos.kafka.config.ConfigStateUpdater;
 import com.mesosphere.dcos.kafka.config.ConfigStateValidator.ValidationError;
@@ -11,6 +12,8 @@ import com.mesosphere.dcos.kafka.offer.PersistentOperationRecorder;
 import com.mesosphere.dcos.kafka.plan.KafkaUpdatePhase;
 import com.mesosphere.dcos.kafka.state.ClusterState;
 import com.mesosphere.dcos.kafka.state.FrameworkState;
+import com.mesosphere.dcos.kafka.web.ConnectionController;
+import com.mesosphere.dcos.kafka.web.TopicController;
 import io.dropwizard.setup.Environment;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -20,6 +23,7 @@ import org.apache.mesos.Scheduler;
 import org.apache.mesos.SchedulerDriver;
 import org.apache.mesos.api.JettyApiServer;
 import org.apache.mesos.config.ConfigStoreException;
+import org.apache.mesos.dcos.DcosCluster;
 import org.apache.mesos.offer.OfferAccepter;
 import org.apache.mesos.reconciliation.DefaultReconciler;
 import org.apache.mesos.reconciliation.Reconciler;
@@ -128,16 +132,29 @@ public class KafkaScheduler implements Scheduler, Runnable {
                 frameworkState.getStateStore());
         LOGGER.info("Registering framework with: " + fwkInfo);
         registerFramework(this, fwkInfo, zkPath);
-        startApiServer(defaultScheduler, Integer.valueOf(System.getenv("PORT1")));
+        startApiServer(defaultScheduler, Integer.valueOf(System.getenv("PORT1")), kafkaSchedulerConfiguration);
     }
 
-    private void startApiServer(DefaultScheduler defaultScheduler, int apiPort) {
+    private void startApiServer(
+            DefaultScheduler defaultScheduler,
+            int apiPort,
+            KafkaSchedulerConfiguration kafkaSchedulerConfiguration) {
         new Thread(new Runnable() {
             @Override
             public void run() {
                 JettyApiServer apiServer = null;
                 try {
                     LOGGER.info("Starting API server.");
+                    Collection<Object> resources = defaultScheduler.getResources();
+                    resources.add(new ConnectionController(
+                            kafkaSchedulerConfiguration.getFullKafkaZookeeperPath(),
+                            getConfigState(),
+                            getKafkaState(),
+                            new ClusterState(new DcosCluster()),
+                            kafkaSchedulerConfiguration.getZookeeperConfig().getFrameworkName()));
+                    resources.add(new TopicController(
+                            new CmdExecutor(kafkaSchedulerConfiguration, getKafkaState()),
+                            getKafkaState()));
                     apiServer = new JettyApiServer(apiPort, defaultScheduler.getResources());
                     apiServer.start();
                 } catch (Exception e) {
@@ -247,6 +264,10 @@ public class KafkaScheduler implements Scheduler, Runnable {
 
     public KafkaState getKafkaState() {
         return kafkaState;
+    }
+
+    public KafkaConfigState getConfigState() {
+        return configState;
     }
 
     public FrameworkState getFrameworkState() {
