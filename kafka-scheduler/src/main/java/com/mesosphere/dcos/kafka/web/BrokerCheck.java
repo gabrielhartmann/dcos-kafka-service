@@ -52,7 +52,7 @@ public class BrokerCheck extends HealthCheck {
   private Phase getUpdatePhase() {
     Plan plan = kafkaScheduler.getPlanManager().getPlan();
 
-    for (Phase phase : plan.getPhases()) {
+    for (Phase phase : plan.getChildren()) {
       if (phase instanceof KafkaUpdatePhase) {
         return phase;
       }
@@ -64,7 +64,7 @@ public class BrokerCheck extends HealthCheck {
   private int getCompleteBrokerBlockCount(Phase phase) {
     int completeCount = 0;
 
-    for (Block block : phase.getBlocks()) {
+    for (Block block : phase.getChildren()) {
       if (block.isComplete()) {
         completeCount++;
       }

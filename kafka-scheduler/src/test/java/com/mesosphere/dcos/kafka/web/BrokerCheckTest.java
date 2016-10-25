@@ -1,12 +1,8 @@
 package com.mesosphere.dcos.kafka.web;
 
-import com.mesosphere.dcos.kafka.plan.KafkaUpdatePhase;
 import com.mesosphere.dcos.kafka.scheduler.KafkaScheduler;
 import com.mesosphere.dcos.kafka.state.FrameworkState;
-import org.apache.mesos.scheduler.plan.Block;
-import org.apache.mesos.scheduler.plan.Phase;
-import org.apache.mesos.scheduler.plan.Plan;
-import org.apache.mesos.scheduler.plan.PlanManager;
+import org.apache.mesos.scheduler.plan.*;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -27,7 +23,7 @@ public class BrokerCheckTest {
     @Mock private PlanManager planManager;
     @Mock private Plan plan;
     @Mock private FrameworkState frameworkState;
-    @Mock private KafkaUpdatePhase kafkaUpdatePhase;
+    @Mock private DefaultPhase kafkaUpdatePhase;
     @Mock private Block block;
     @Mock private KafkaScheduler kafkaScheduler;
     private BrokerCheck brokerCheck;
@@ -53,7 +49,7 @@ public class BrokerCheckTest {
     @Test
     public void testCheckNoUpdatePhase() throws Exception {
         when(planManager.getPlan()).thenReturn(plan);
-        when(plan.getPhases()).thenReturn(Collections.emptyList());
+        when(plan.getChildren()).thenReturn(Collections.emptyList());
         Assert.assertFalse(brokerCheck.check().isHealthy());
     }
 
@@ -62,8 +58,8 @@ public class BrokerCheckTest {
         when(planManager.getPlan()).thenReturn(plan);
         when(frameworkState.getRunningBrokersCount()).thenReturn(0);
         when(block.isComplete()).thenReturn(true);
-        when(kafkaUpdatePhase.getBlocks()).thenReturn(Arrays.asList(block));
-        Mockito.<List<? extends Phase>>when(plan.getPhases()).thenReturn(getMockPhases());
+        when(kafkaUpdatePhase.getChildren()).thenReturn(Arrays.asList(block));
+        Mockito.<List<? extends Phase>>when(plan.getChildren()).thenReturn(getMockPhases());
         Assert.assertFalse(brokerCheck.check().isHealthy());
     }
 
@@ -72,8 +68,8 @@ public class BrokerCheckTest {
         when(planManager.getPlan()).thenReturn(plan);
         when(frameworkState.getRunningBrokersCount()).thenReturn(1);
         when(block.isComplete()).thenReturn(true);
-        when(kafkaUpdatePhase.getBlocks()).thenReturn(Arrays.asList(block));
-        Mockito.<List<? extends Phase>>when(plan.getPhases()).thenReturn(getMockPhases());
+        when(kafkaUpdatePhase.getChildren()).thenReturn(Arrays.asList(block));
+        Mockito.<List<? extends Phase>>when(plan.getChildren()).thenReturn(getMockPhases());
         Assert.assertTrue(brokerCheck.check().isHealthy());
     }
 

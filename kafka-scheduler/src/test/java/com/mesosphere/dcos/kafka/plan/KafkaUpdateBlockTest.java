@@ -9,6 +9,8 @@ import com.mesosphere.dcos.kafka.test.KafkaTestUtils;
 import org.apache.mesos.Protos;
 import org.apache.mesos.dcos.Capabilities;
 import org.apache.mesos.offer.OfferRequirement;
+import org.apache.mesos.offer.TaskUtils;
+import org.apache.mesos.scheduler.plan.DefaultBlock;
 import org.apache.mesos.state.StateStore;
 import org.junit.Assert;
 import org.junit.Before;
@@ -29,15 +31,24 @@ import static org.mockito.Mockito.when;
  * This class tests the KafkaUpdateBlock class.
  */
 public class KafkaUpdateBlockTest {
+    public static final String TASK_NAME = "test-task-name";
+    public static final Protos.TaskID TASK_ID = TaskUtils.toTaskId(TASK_NAME);
+    public static final Protos.SlaveID AGENT_ID = Protos.SlaveID.newBuilder().setValue("test-slave-id").build();
+
     @Mock private FrameworkState frameworkState;
     @Mock private KafkaConfigState configState;
     @Mock private ClusterState clusterState;
     @Mock private Capabilities capabilities;
     private PersistentOfferRequirementProvider offerRequirementProvider;
-    private KafkaUpdateBlock updateBlock;
+    private DefaultBlock updateBlock;
 
     private static final Protos.Offer.Operation operation = Protos.Offer.Operation.newBuilder()
             .setType(Protos.Offer.Operation.Type.LAUNCH)
+            .setLaunch(Protos.Offer.Operation.Launch.newBuilder()
+                    .addTaskInfos(Protos.TaskInfo.newBuilder()
+                            .setTaskId(TASK_ID)
+                            .setName(TASK_NAME)
+                            .setSlaveId(AGENT_ID)))
             .build();
     private static final Collection<Protos.Offer.Operation> nonEmptyOperations =
             Arrays.asList(operation);
@@ -55,7 +66,7 @@ public class KafkaUpdateBlockTest {
         when(clusterState.getCapabilities()).thenReturn(capabilities);
         offerRequirementProvider = new PersistentOfferRequirementProvider(frameworkState, configState, clusterState);
         updateBlock =
-                new KafkaUpdateBlock(
+                KafkaUpdateBlock.create(
                         frameworkState,
                         offerRequirementProvider,
                         KafkaTestUtils.testConfigName,
@@ -98,8 +109,7 @@ public class KafkaUpdateBlockTest {
         updateBlock.start();
         updateBlock.updateOfferStatus(nonEmptyOperations);
         Assert.assertTrue(updateBlock.isInProgress());
-        Protos.TaskID taskId = updateBlock.getPendingTaskIds().get(0);
-        Protos.TaskStatus reconciliationTaskStatus = getRunningTaskStatus(taskId.getValue());
+        Protos.TaskStatus reconciliationTaskStatus = getRunningTaskStatus(TASK_ID.getValue());
         reconciliationTaskStatus = Protos.TaskStatus.newBuilder(reconciliationTaskStatus)
                 .setReason(Protos.TaskStatus.Reason.REASON_RECONCILIATION)
                 .build();
@@ -113,8 +123,7 @@ public class KafkaUpdateBlockTest {
         updateBlock.start();
         updateBlock.updateOfferStatus(nonEmptyOperations);
         Assert.assertTrue(updateBlock.isInProgress());
-        Protos.TaskID taskId = updateBlock.getPendingTaskIds().get(0);
-        updateBlock.update(getRunningTaskStatus(taskId.getValue()));
+        updateBlock.update(getRunningTaskStatus(TASK_ID.getValue()));
         Assert.assertTrue(updateBlock.isComplete());
     }
 
@@ -124,8 +133,7 @@ public class KafkaUpdateBlockTest {
         updateBlock.start();
         updateBlock.updateOfferStatus(nonEmptyOperations);
         Assert.assertTrue(updateBlock.isInProgress());
-        Protos.TaskID taskId = updateBlock.getPendingTaskIds().get(0);
-        updateBlock.update(getFailedTaskStatus(taskId.getValue()));
+        updateBlock.update(getFailedTaskStatus(TASK_ID.getValue()));
         Assert.assertTrue(updateBlock.isPending());
     }
 
