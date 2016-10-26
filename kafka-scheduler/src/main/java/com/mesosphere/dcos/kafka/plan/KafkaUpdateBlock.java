@@ -20,10 +20,6 @@ import java.util.Optional;
 
 public class KafkaUpdateBlock extends DefaultBlock {
     private static final Log LOGGER = LogFactory.getLog(KafkaUpdateBlock.class);
-    private final FrameworkState state;
-    private final KafkaOfferRequirementProvider offerRequirementProvider;
-    private final String targetConfigName;
-    private final int brokerId;
 
     public static KafkaUpdateBlock create(
             FrameworkState state,
@@ -45,43 +41,15 @@ public class KafkaUpdateBlock extends DefaultBlock {
                 brokerName,
                 offerRequirementOptional,
                 initializeStatus(brokerName, taskInfo, targetConfigName),
-                Collections.emptyList(),
-                state,
-                offerRequirementProvider,
-                targetConfigName,
-                brokerId);
+                Collections.emptyList());
     }
 
     private KafkaUpdateBlock(
             String name,
             Optional<OfferRequirement> offerRequirementOptional,
             Status status,
-            List<String> errors,
-            FrameworkState state,
-            KafkaOfferRequirementProvider offerRequirementProvider,
-            String targetConfigName,
-            int brokerId) {
+            List<String> errors) {
         super(name, offerRequirementOptional, status, errors);
-        this.state = state;
-        this.offerRequirementProvider = offerRequirementProvider;
-        this.targetConfigName = targetConfigName;
-        this.brokerId = brokerId;
-    }
-
-    @Override
-    public Optional<OfferRequirement> start() {
-        TaskInfo taskInfo = fetchTaskInfo(state, brokerId);
-        try {
-            return Optional.of(
-                    getOfferRequirement(
-                            offerRequirementProvider,
-                            taskInfo,
-                            targetConfigName,
-                            brokerId));
-        } catch (IOException | InvalidRequirementException | URISyntaxException e) {
-            LOGGER.error("Failed to generate OfferRequirement", e);
-            return Optional.empty();
-        }
     }
 
     private static Status initializeStatus(String brokerName, TaskInfo taskInfo, String targetConfigName) {
