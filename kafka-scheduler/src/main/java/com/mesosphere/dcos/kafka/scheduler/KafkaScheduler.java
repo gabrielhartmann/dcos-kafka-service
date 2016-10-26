@@ -23,6 +23,7 @@ import org.apache.mesos.Scheduler;
 import org.apache.mesos.SchedulerDriver;
 import org.apache.mesos.api.JettyApiServer;
 import org.apache.mesos.config.ConfigStoreException;
+import org.apache.mesos.curator.CuratorStateStore;
 import org.apache.mesos.dcos.DcosCluster;
 import org.apache.mesos.offer.OfferAccepter;
 import org.apache.mesos.reconciliation.DefaultReconciler;
@@ -94,8 +95,11 @@ public class KafkaScheduler implements Scheduler, Runnable {
         offerAccepter =
                 new OfferAccepter(Arrays.asList(new PersistentOperationRecorder(frameworkState)));
 
+        StateStore stateStore = new CuratorStateStore(
+                configuration.getServiceConfiguration().getName(),
+                configuration.getKafkaConfiguration().getMesosZkUri());
         this.offerRequirementProvider =
-                new PersistentOfferRequirementProvider(frameworkState, configState, clusterState);
+                new PersistentOfferRequirementProvider(stateStore, configState, clusterState);
 
         KafkaUpdatePhase updatePhase = new KafkaUpdatePhase(
                 configState.getTargetName().toString(),
@@ -117,7 +121,10 @@ public class KafkaScheduler implements Scheduler, Runnable {
         defaultScheduler = DefaultScheduler.create(
                 configuration.getServiceConfiguration().getName(),
                 defaultPlanManager,
-                configuration.getKafkaConfiguration().getMesosZkUri());
+                configuration.getKafkaConfiguration().getMesosZkUri(),
+                configuration.getRecoveryConfiguration().isReplacementEnabled(),
+                configuration.getRecoveryConfiguration().getGracePeriodSecs(),
+                configuration.getRecoveryConfiguration().getRecoveryDelaySecs());
     }
 
     @Override
@@ -130,9 +137,9 @@ public class KafkaScheduler implements Scheduler, Runnable {
                 kafkaSchedulerConfiguration.getServiceConfiguration().getName(),
                 kafkaSchedulerConfiguration.getServiceConfiguration().getUser(),
                 frameworkState.getStateStore());
+        startApiServer(defaultScheduler, Integer.valueOf(System.getenv("PORT1")), kafkaSchedulerConfiguration);
         LOGGER.info("Registering framework with: " + fwkInfo);
         registerFramework(this, fwkInfo, zkPath);
-        startApiServer(defaultScheduler, Integer.valueOf(System.getenv("PORT1")), kafkaSchedulerConfiguration);
     }
 
     private void startApiServer(
@@ -144,7 +151,7 @@ public class KafkaScheduler implements Scheduler, Runnable {
             public void run() {
                 JettyApiServer apiServer = null;
                 try {
-                    LOGGER.info("Starting API server.");
+                    LOGGER.info("Starting API server thread");
                     Collection<Object> resources = defaultScheduler.getResources();
                     resources.add(new ConnectionController(
                             kafkaSchedulerConfiguration.getFullKafkaZookeeperPath(),

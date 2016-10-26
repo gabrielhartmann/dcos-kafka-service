@@ -3,7 +3,6 @@ package com.mesosphere.dcos.kafka.plan;
 import com.mesosphere.dcos.kafka.offer.KafkaOfferRequirementProvider;
 import com.mesosphere.dcos.kafka.offer.OfferUtils;
 import com.mesosphere.dcos.kafka.state.FrameworkState;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.mesos.Protos.TaskInfo;
@@ -15,15 +14,18 @@ import org.apache.mesos.state.StateStoreException;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
 public class KafkaUpdateBlock extends DefaultBlock {
     private static final Log LOGGER = LogFactory.getLog(KafkaUpdateBlock.class);
+    private final FrameworkState state;
+    private final KafkaOfferRequirementProvider offerRequirementProvider;
+    private final String targetConfigName;
+    private final int brokerId;
 
-    public static DefaultBlock create(
+    public static KafkaUpdateBlock create(
             FrameworkState state,
             KafkaOfferRequirementProvider offerReqProvider,
             String targetConfigName,
@@ -31,30 +33,49 @@ public class KafkaUpdateBlock extends DefaultBlock {
 
         String brokerName = OfferUtils.brokerIdToTaskName(brokerId);
 
-        try {
-            TaskInfo taskInfo = fetchTaskInfo(state, brokerId);
-            OfferRequirement offerReq = getOfferRequirement(
-                    offerReqProvider,
-                    taskInfo,
-                    targetConfigName,
-                    brokerId);
+        TaskInfo taskInfo = fetchTaskInfo(state, brokerId);
 
-            return new DefaultBlock(
-                    brokerName,
-                    Optional.of(offerReq),
-                    initializeStatus(brokerName, taskInfo, targetConfigName),
-                    Collections.emptyList());
-        } catch (IOException | InvalidRequirementException | URISyntaxException e) {
-            return new DefaultBlock(
-                    brokerName,
-                    Optional.empty(),
-                    Status.ERROR,
-                    Arrays.asList(ExceptionUtils.getStackTrace(e)));
-        }
+        return new KafkaUpdateBlock(
+                brokerName,
+                Optional.empty(),
+                initializeStatus(brokerName, taskInfo, targetConfigName),
+                Collections.emptyList(),
+                state,
+                offerReqProvider,
+                targetConfigName,
+                brokerId);
     }
 
-    private KafkaUpdateBlock(String name, Optional<OfferRequirement> offerRequirementOptional, Status status, List<String> errors) {
+    private KafkaUpdateBlock(
+            String name,
+            Optional<OfferRequirement> offerRequirementOptional,
+            Status status,
+            List<String> errors,
+            FrameworkState state,
+            KafkaOfferRequirementProvider offerRequirementProvider,
+            String targetConfigName,
+            int brokerId) {
         super(name, offerRequirementOptional, status, errors);
+        this.state = state;
+        this.offerRequirementProvider = offerRequirementProvider;
+        this.targetConfigName = targetConfigName;
+        this.brokerId = brokerId;
+    }
+
+    @Override
+    public Optional<OfferRequirement> start() {
+        TaskInfo taskInfo = fetchTaskInfo(state, brokerId);
+        try {
+            return Optional.of(
+                    getOfferRequirement(
+                            offerRequirementProvider,
+                            taskInfo,
+                            targetConfigName,
+                            brokerId));
+        } catch (IOException | InvalidRequirementException | URISyntaxException e) {
+            LOGGER.error("Failed to generate OfferRequirement", e);
+            return Optional.empty();
+        }
     }
 
     private static Status initializeStatus(String brokerName, TaskInfo taskInfo, String targetConfigName) {

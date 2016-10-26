@@ -25,7 +25,6 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.*;
 
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class PersistentOfferRequirementProviderTest {
@@ -34,12 +33,12 @@ public class PersistentOfferRequirementProviderTest {
   @Mock private KafkaConfigState configState;
   @Mock private ClusterState clusterState;
   @Mock private Capabilities capabilities;
+  @Mock private StateStore stateStore;
   private KafkaSchedulerConfiguration schedulerConfig;
 
   @Before
   public void beforeEach() throws IOException, URISyntaxException {
     MockitoAnnotations.initMocks(this);
-    StateStore stateStore = mock(StateStore.class);
     when(stateStore.fetchFrameworkId()).thenReturn(Optional.of(KafkaTestUtils.testFrameworkId));
     when(state.getStateStore()).thenReturn(stateStore);
     when(capabilities.supportsNamedVips()).thenReturn(true);
@@ -50,7 +49,7 @@ public class PersistentOfferRequirementProviderTest {
   @Test
   public void testConstructor() {
     PersistentOfferRequirementProvider provider = new PersistentOfferRequirementProvider(
-            state,
+            stateStore,
             configState,
             clusterState);
     Assert.assertNotNull(provider);
@@ -62,7 +61,7 @@ public class PersistentOfferRequirementProviderTest {
     when(state.getStateStore().fetchFrameworkId()).thenReturn(
             Optional.of(FrameworkID.newBuilder().setValue("abcd").build()));
     PersistentOfferRequirementProvider provider = new PersistentOfferRequirementProvider(
-            state,
+            stateStore,
             configState,
             clusterState);
     OfferRequirement req = provider.getNewOfferRequirement(KafkaTestUtils.testConfigName, 0);
@@ -182,7 +181,10 @@ public class PersistentOfferRequirementProviderTest {
 
   @Test
   public void testReplaceOfferRequirement() throws Exception {
-    PersistentOfferRequirementProvider provider = new PersistentOfferRequirementProvider(state, configState, clusterState);
+    PersistentOfferRequirementProvider provider = new PersistentOfferRequirementProvider(
+            stateStore,
+            configState,
+            clusterState);
     Resource cpu = ResourceUtils.getDesiredScalar(
             KafkaTestUtils.testRole,
             KafkaTestUtils.testPrincipal,
@@ -217,7 +219,10 @@ public class PersistentOfferRequirementProviderTest {
     TaskInfo oldTaskInfo = getTaskInfo(Arrays.asList(oldCpu, oldMem, oldDisk));
     oldTaskInfo = configKafkaHeapOpts(oldTaskInfo, oldHeapConfig);
 
-    PersistentOfferRequirementProvider provider = new PersistentOfferRequirementProvider(state, configState, clusterState);
+    PersistentOfferRequirementProvider provider = new PersistentOfferRequirementProvider(
+            stateStore,
+            configState,
+            clusterState);
     OfferRequirement req = provider.getUpdateOfferRequirement(KafkaTestUtils.testConfigName, oldTaskInfo);
     Assert.assertNotNull(req);
 

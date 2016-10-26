@@ -6,7 +6,6 @@ import com.google.protobuf.TextFormat;
 import com.mesosphere.dcos.kafka.commons.KafkaTask;
 import com.mesosphere.dcos.kafka.config.*;
 import com.mesosphere.dcos.kafka.state.ClusterState;
-import com.mesosphere.dcos.kafka.state.FrameworkState;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.mesos.Protos.*;
@@ -15,6 +14,7 @@ import org.apache.mesos.Protos.Value.Ranges;
 import org.apache.mesos.config.ConfigStoreException;
 import org.apache.mesos.offer.*;
 import org.apache.mesos.offer.constrain.PlacementRuleGenerator;
+import org.apache.mesos.state.StateStore;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -29,18 +29,16 @@ public class PersistentOfferRequirementProvider implements KafkaOfferRequirement
     public static final String BROKER_TASK_TYPE = "broker";
 
     private final KafkaConfigState configState;
-    private final FrameworkState schedulerState;
     private final ClusterState clusterState;
     private final PlacementStrategyManager placementStrategyManager;
 
     public PersistentOfferRequirementProvider(
-            FrameworkState schedulerState,
+            StateStore stateStore,
             KafkaConfigState configState,
             ClusterState clusterState) {
         this.configState = configState;
-        this.schedulerState = schedulerState;
         this.clusterState = clusterState;
-        this.placementStrategyManager = new PlacementStrategyManager(schedulerState);
+        this.placementStrategyManager = new PlacementStrategyManager(stateStore);
     }
 
     @Override
