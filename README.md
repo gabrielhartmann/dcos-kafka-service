@@ -129,6 +129,12 @@ See also [Connecting clients][3].
 <a name="install-and-customize"></a>
 # Install and Customize
 
+## About installing Kafka on Enterprise DC/OS
+
+In Enterprise DC/OS `strict` [security mode](/1.8/administration/installing/custom/configuration-parameters/#security), Kafka requires a service account. In `permissive`, a service account is
+optional. Only someone with `superuser` permission can create the service account. Refer to [Provisioning
+Kafka](http://docs.mesosphere.com/1.8/administration/id-and-access-mgt/service-auth/kafka-auth/) for instructions.
+
 ## Default Installation
 
 To start a basic test cluster with three brokers, run the following command on the DC/OS CLI:
