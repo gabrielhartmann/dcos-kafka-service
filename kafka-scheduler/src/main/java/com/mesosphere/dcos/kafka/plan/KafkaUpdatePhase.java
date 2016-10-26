@@ -3,8 +3,11 @@ package com.mesosphere.dcos.kafka.plan;
 import com.mesosphere.dcos.kafka.config.KafkaSchedulerConfiguration;
 import com.mesosphere.dcos.kafka.offer.KafkaOfferRequirementProvider;
 import com.mesosphere.dcos.kafka.state.FrameworkState;
+import org.apache.mesos.offer.InvalidRequirementException;
 import org.apache.mesos.scheduler.plan.Block;
 
+import java.io.IOException;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,10 +20,15 @@ public class KafkaUpdatePhase {
             String targetConfigName,
             KafkaSchedulerConfiguration targetConfig,
             FrameworkState frameworkState,
-            KafkaOfferRequirementProvider offerReqProvider) {
+            KafkaOfferRequirementProvider offerReqProvider)
+            throws InvalidRequirementException, IOException, URISyntaxException {
         this.configName = targetConfigName;
         this.config = targetConfig;
-        this.blocks = createBlocks(configName, config.getServiceConfiguration().getCount(), frameworkState, offerReqProvider);
+        this.blocks = createBlocks(
+                configName,
+                config.getServiceConfiguration().getCount(),
+                frameworkState,
+                offerReqProvider);
     }
 
     public List<Block> getBlocks() {
@@ -31,7 +39,8 @@ public class KafkaUpdatePhase {
             String configName,
             int brokerCount,
             FrameworkState frameworkState,
-            KafkaOfferRequirementProvider offerReqProvider) {
+            KafkaOfferRequirementProvider offerReqProvider)
+            throws IOException, InvalidRequirementException, URISyntaxException {
 
         List<Block> blocks = new ArrayList<Block>();
 

@@ -29,23 +29,17 @@ public class KafkaUpdateBlock extends DefaultBlock {
             FrameworkState state,
             KafkaOfferRequirementProvider offerRequirementProvider,
             String targetConfigName,
-            int brokerId) {
+            int brokerId) throws InvalidRequirementException, IOException, URISyntaxException {
 
         String brokerName = OfferUtils.brokerIdToTaskName(brokerId);
 
         TaskInfo taskInfo = fetchTaskInfo(state, brokerId);
-        Optional<OfferRequirement> offerRequirementOptional = Optional.empty();
-
-        try {
-            offerRequirementOptional = Optional.of(
-                    getOfferRequirement(
-                            offerRequirementProvider,
-                            taskInfo,
-                            targetConfigName,
-                            brokerId));
-        } catch (IOException | InvalidRequirementException | URISyntaxException e) {
-            LOGGER.error("Failed to generate OfferRequirement", e);
-        }
+        Optional<OfferRequirement> offerRequirementOptional = Optional.of(
+                getOfferRequirement(
+                        offerRequirementProvider,
+                        taskInfo,
+                        targetConfigName,
+                        brokerId));
 
         return new KafkaUpdateBlock(
                 brokerName,

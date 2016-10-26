@@ -4,6 +4,7 @@ import com.mesosphere.dcos.kafka.config.KafkaSchedulerConfiguration;
 import com.mesosphere.dcos.kafka.config.ServiceConfiguration;
 import com.mesosphere.dcos.kafka.offer.PersistentOfferRequirementProvider;
 import com.mesosphere.dcos.kafka.state.FrameworkState;
+import org.apache.mesos.offer.InvalidRequirementException;
 import org.apache.mesos.offer.OfferRequirement;
 import org.apache.mesos.reconciliation.Reconciler;
 import org.apache.mesos.scheduler.plan.*;
@@ -15,6 +16,8 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import java.io.IOException;
+import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -55,7 +58,7 @@ public class KafkaStageTest {
         Assert.assertEquals(3, plan.getChildren().get(1).getChildren().size());
     }
 
-    private Plan getTestPlan() {
+    private Plan getTestPlan() throws IOException, InvalidRequirementException, URISyntaxException {
         KafkaUpdatePhase updatePhase = new KafkaUpdatePhase(
                 "target-config-name",
                 schedulerConfiguration,

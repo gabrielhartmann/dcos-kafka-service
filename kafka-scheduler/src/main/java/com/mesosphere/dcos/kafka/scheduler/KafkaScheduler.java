@@ -22,8 +22,8 @@ import org.apache.mesos.Protos.*;
 import org.apache.mesos.Scheduler;
 import org.apache.mesos.SchedulerDriver;
 import org.apache.mesos.api.JettyApiServer;
-import org.apache.mesos.config.ConfigStoreException;
 import org.apache.mesos.dcos.DcosCluster;
+import org.apache.mesos.offer.InvalidRequirementException;
 import org.apache.mesos.offer.OfferAccepter;
 import org.apache.mesos.reconciliation.DefaultReconciler;
 import org.apache.mesos.reconciliation.Reconciler;
@@ -34,6 +34,7 @@ import org.apache.mesos.scheduler.plan.*;
 import org.apache.mesos.scheduler.plan.strategy.SerialStrategy;
 import org.apache.mesos.state.StateStore;
 
+import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.*;
 
@@ -64,7 +65,7 @@ public class KafkaScheduler implements Scheduler, Runnable {
 
 
     public KafkaScheduler(KafkaSchedulerConfiguration configuration, Environment environment)
-            throws ConfigStoreException, URISyntaxException {
+            throws IOException, URISyntaxException, InvalidRequirementException {
 
         this.kafkaSchedulerConfiguration = configuration;
         ConfigStateUpdater configStateUpdater = new ConfigStateUpdater(configuration);
