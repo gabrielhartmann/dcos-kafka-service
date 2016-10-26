@@ -115,12 +115,17 @@ public class KafkaScheduler implements Scheduler, Runnable {
 
         defaultPlanManager = new DefaultPlanManager(installPlan);
 
+        Optional<Integer> gracePeriodSecs = Optional.empty();
+
+        if (configuration.getRecoveryConfiguration().isReplacementEnabled()) {
+            gracePeriodSecs = Optional.of(configuration.getRecoveryConfiguration().getGracePeriodSecs());
+        }
+
         defaultScheduler = DefaultScheduler.create(
                 configuration.getServiceConfiguration().getName(),
                 defaultPlanManager,
                 configuration.getKafkaConfiguration().getMesosZkUri(),
-                configuration.getRecoveryConfiguration().isReplacementEnabled(),
-                configuration.getRecoveryConfiguration().getGracePeriodSecs(),
+                gracePeriodSecs,
                 configuration.getRecoveryConfiguration().getRecoveryDelaySecs());
     }
 

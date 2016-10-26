@@ -8,9 +8,12 @@ import org.apache.mesos.executor.ExecutorTaskException;
 import org.apache.mesos.executor.ExecutorTaskFactory;
 import org.apache.mesos.executor.ProcessTask;
 
+import java.io.IOException;
+
 public class KafkaExecutorTaskFactory implements ExecutorTaskFactory {
     @Override
-    public ExecutorTask createTask(Protos.TaskInfo taskInfo, ExecutorDriver executorDriver) throws ExecutorTaskException {
+    public ExecutorTask createTask(Protos.TaskInfo taskInfo, ExecutorDriver executorDriver)
+            throws ExecutorTaskException, IOException {
         try {
             return ProcessTask.create(executorDriver, taskInfo);
         } catch (InvalidProtocolBufferException e) {
