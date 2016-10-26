@@ -1,31 +1,23 @@
 package com.mesosphere.dcos.kafka.offer;
 
-import com.mesosphere.dcos.kafka.config.KafkaSchedulerConfiguration;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.mesos.Protos;
+import org.apache.mesos.offer.constrain.AgentRule;
+import org.apache.mesos.offer.constrain.PlacementRule;
 import org.apache.mesos.offer.constrain.PlacementRuleGenerator;
-import org.apache.mesos.offer.constrain.PlacementUtils;
-import org.apache.mesos.state.StateStore;
 
-import java.util.Collections;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-class PlacementStrategyManager {
+public class PlacementStrategyManager {
     private static final Log log = LogFactory.getLog(PlacementStrategyManager.class);
-    private final StateStore stateStore;
 
-    PlacementStrategyManager(StateStore stateStore) {
-        this.stateStore = stateStore;
-    }
-
-    public Optional<PlacementRuleGenerator> getPlacementStrategy(
-            KafkaSchedulerConfiguration config,
+    public static Optional<PlacementRuleGenerator> getPlacementStrategy(
+            String placementStrategy,
             Protos.TaskInfo taskInfo) {
-        String placementStrategy = config.getServiceConfiguration().getPlacementStrategy();
-
         log.info("Using placement strategy: " + placementStrategy);
 
         switch (placementStrategy) {
@@ -34,18 +26,30 @@ class PlacementStrategyManager {
                 return Optional.empty();
             case "NODE":
                 log.info("Returning NODE strategy");
-                log.info(String.format("Current tasks for Strategy: %s",
-                        stateStore.fetchTasks().stream()
-                                .map(ti -> ti.getName()).collect(Collectors.toList())));
-                List<String> avoidAgents = NodePlacementStrategy.getAgentsToAvoid(stateStore, taskInfo);
-                log.info(String.format("For '%s' avoiding agents: %s", taskInfo.getName(), avoidAgents));
-
-                return PlacementUtils.getAgentPlacementRule(
-                        avoidAgents,
-                        Collections.emptyList());
+                return Optional.of(new AvoidAgentPlacementRuleGenerator(taskInfo));
             default:
                 log.info("Returning DEFAULT strategy");
-                return Optional.empty();
+                return Optional.of(new AvoidAgentPlacementRuleGenerator(taskInfo));
+        }
+    }
+
+    public static class AvoidAgentPlacementRuleGenerator implements PlacementRuleGenerator {
+
+        private final Protos.TaskInfo taskInfo;
+
+        public AvoidAgentPlacementRuleGenerator(Protos.TaskInfo taskInfo) {
+            this.taskInfo = taskInfo;
+        }
+
+        @Override
+        public PlacementRule generate(Collection<Protos.TaskInfo> tasks) {
+             List<String> avoidAgents = tasks.stream()
+                    .filter(taskInfo -> !taskInfo.getName().equals(this.taskInfo.getName()))
+                    .map(taskInfo -> taskInfo.getSlaveId().getValue())
+                    .collect(Collectors.toList());
+
+            log.info(String.format("For '%s' avoiding agents: %s", taskInfo.getName(), avoidAgents));
+            return new AgentRule.AvoidAgentsGenerator(avoidAgents).generate(tasks);
         }
     }
 }

@@ -23,7 +23,6 @@ import org.apache.mesos.Scheduler;
 import org.apache.mesos.SchedulerDriver;
 import org.apache.mesos.api.JettyApiServer;
 import org.apache.mesos.config.ConfigStoreException;
-import org.apache.mesos.curator.CuratorStateStore;
 import org.apache.mesos.dcos.DcosCluster;
 import org.apache.mesos.offer.OfferAccepter;
 import org.apache.mesos.reconciliation.DefaultReconciler;
@@ -95,11 +94,8 @@ public class KafkaScheduler implements Scheduler, Runnable {
         offerAccepter =
                 new OfferAccepter(Arrays.asList(new PersistentOperationRecorder(frameworkState)));
 
-        StateStore stateStore = new CuratorStateStore(
-                configuration.getServiceConfiguration().getName(),
-                configuration.getKafkaConfiguration().getMesosZkUri());
         this.offerRequirementProvider =
-                new PersistentOfferRequirementProvider(stateStore, configState, clusterState);
+                new PersistentOfferRequirementProvider(configState, clusterState);
 
         KafkaUpdatePhase updatePhase = new KafkaUpdatePhase(
                 configState.getTargetName().toString(),

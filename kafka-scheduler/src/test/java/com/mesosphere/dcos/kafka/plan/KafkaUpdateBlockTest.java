@@ -80,7 +80,7 @@ public class KafkaUpdateBlockTest {
                 ConfigTestUtils.getTestKafkaSchedulerConfiguration());
         when(capabilities.supportsNamedVips()).thenReturn(true);
         when(clusterState.getCapabilities()).thenReturn(capabilities);
-        offerRequirementProvider = new PersistentOfferRequirementProvider(stateStore, configState, clusterState);
+        offerRequirementProvider = new PersistentOfferRequirementProvider(configState, clusterState);
         updateBlock =
                 KafkaUpdateBlock.create(
                         frameworkState,

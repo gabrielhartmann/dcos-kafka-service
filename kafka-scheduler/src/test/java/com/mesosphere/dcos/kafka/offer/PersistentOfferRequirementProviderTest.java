@@ -48,10 +48,7 @@ public class PersistentOfferRequirementProviderTest {
 
   @Test
   public void testConstructor() {
-    PersistentOfferRequirementProvider provider = new PersistentOfferRequirementProvider(
-            stateStore,
-            configState,
-            clusterState);
+    PersistentOfferRequirementProvider provider = new PersistentOfferRequirementProvider(configState, clusterState);
     Assert.assertNotNull(provider);
   }
 
@@ -60,10 +57,7 @@ public class PersistentOfferRequirementProviderTest {
     when(configState.fetch(UUID.fromString(KafkaTestUtils.testConfigName))).thenReturn(schedulerConfig);
     when(state.getStateStore().fetchFrameworkId()).thenReturn(
             Optional.of(FrameworkID.newBuilder().setValue("abcd").build()));
-    PersistentOfferRequirementProvider provider = new PersistentOfferRequirementProvider(
-            stateStore,
-            configState,
-            clusterState);
+    PersistentOfferRequirementProvider provider = new PersistentOfferRequirementProvider(configState, clusterState);
     OfferRequirement req = provider.getNewOfferRequirement(KafkaTestUtils.testConfigName, 0);
 
     TaskInfo taskInfo = req.getTaskRequirements().iterator().next().getTaskInfo();
@@ -181,10 +175,7 @@ public class PersistentOfferRequirementProviderTest {
 
   @Test
   public void testReplaceOfferRequirement() throws Exception {
-    PersistentOfferRequirementProvider provider = new PersistentOfferRequirementProvider(
-            stateStore,
-            configState,
-            clusterState);
+    PersistentOfferRequirementProvider provider = new PersistentOfferRequirementProvider(configState, clusterState);
     Resource cpu = ResourceUtils.getDesiredScalar(
             KafkaTestUtils.testRole,
             KafkaTestUtils.testPrincipal,
@@ -219,10 +210,7 @@ public class PersistentOfferRequirementProviderTest {
     TaskInfo oldTaskInfo = getTaskInfo(Arrays.asList(oldCpu, oldMem, oldDisk));
     oldTaskInfo = configKafkaHeapOpts(oldTaskInfo, oldHeapConfig);
 
-    PersistentOfferRequirementProvider provider = new PersistentOfferRequirementProvider(
-            stateStore,
-            configState,
-            clusterState);
+    PersistentOfferRequirementProvider provider = new PersistentOfferRequirementProvider(configState, clusterState);
     OfferRequirement req = provider.getUpdateOfferRequirement(KafkaTestUtils.testConfigName, oldTaskInfo);
     Assert.assertNotNull(req);
 

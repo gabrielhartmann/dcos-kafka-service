@@ -14,7 +14,6 @@ import org.apache.mesos.Protos.Value.Ranges;
 import org.apache.mesos.config.ConfigStoreException;
 import org.apache.mesos.offer.*;
 import org.apache.mesos.offer.constrain.PlacementRuleGenerator;
-import org.apache.mesos.state.StateStore;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -30,15 +29,12 @@ public class PersistentOfferRequirementProvider implements KafkaOfferRequirement
 
     private final KafkaConfigState configState;
     private final ClusterState clusterState;
-    private final PlacementStrategyManager placementStrategyManager;
 
     public PersistentOfferRequirementProvider(
-            StateStore stateStore,
             KafkaConfigState configState,
             ClusterState clusterState) {
         this.configState = configState;
         this.clusterState = clusterState;
-        this.placementStrategyManager = new PlacementStrategyManager(stateStore);
     }
 
     @Override
@@ -431,7 +427,9 @@ public class PersistentOfferRequirementProvider implements KafkaOfferRequirement
         TaskInfo taskInfo = getNewTaskInfo(config, configName, brokerId);
         ExecutorInfo executorInfo = getNewExecutorInfo(config, configName, brokerId);
 
-        Optional<PlacementRuleGenerator> placement = placementStrategyManager.getPlacementStrategy(config, taskInfo);
+        Optional<PlacementRuleGenerator> placement = PlacementStrategyManager.getPlacementStrategy(
+                config.getServiceConfiguration().getPlacementStrategy(),
+                taskInfo);
 
         OfferRequirement offerRequirement = new OfferRequirement(
                 BROKER_TASK_TYPE,
