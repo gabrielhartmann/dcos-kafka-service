@@ -14,14 +14,16 @@ import org.apache.mesos.Protos.Value.Ranges;
 import org.apache.mesos.config.ConfigStoreException;
 import org.apache.mesos.offer.*;
 import org.apache.mesos.offer.constrain.PlacementRuleGenerator;
-import org.apache.mesos.specification.TaskSpecification;
+import org.apache.mesos.scheduler.recovery.DefaultRecoveryRequirement;
+import org.apache.mesos.scheduler.recovery.RecoveryRequirement;
+import org.apache.mesos.scheduler.recovery.RecoveryRequirementProvider;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 
-public class PersistentOfferRequirementProvider implements KafkaOfferRequirementProvider, OfferRequirementProvider {
+public class PersistentOfferRequirementProvider implements KafkaOfferRequirementProvider, RecoveryRequirementProvider {
     private final Log log = LogFactory.getLog(PersistentOfferRequirementProvider.class);
 
     public static final String CONFIG_ID_KEY = "CONFIG_ID";
@@ -39,15 +41,39 @@ public class PersistentOfferRequirementProvider implements KafkaOfferRequirement
     }
 
     @Override
-    public OfferRequirement getNewOfferRequirement(TaskSpecification taskSpecification) throws InvalidRequirementException {
-        throw new InvalidRequirementException(
-                "The PersistentOfferRequirementProvider should not be used to generate OfferRequirements" +
-                        " from TaskSpecifications");
+    public List<RecoveryRequirement> getTransientRecoveryRequirements(List<TaskInfo> stoppedTasks)
+            throws InvalidRequirementException {
+
+        List<RecoveryRequirement> recoveryRequirements = new ArrayList<>();
+        for (TaskInfo taskInfo : stoppedTasks) {
+            OfferRequirement offerRequirement = getReplacementOfferRequirement(taskInfo);
+            recoveryRequirements.add(
+                    new DefaultRecoveryRequirement(offerRequirement, RecoveryRequirement.RecoveryType.TRANSIENT));
+        }
+
+        return recoveryRequirements;
     }
 
     @Override
-    public OfferRequirement getExistingOfferRequirement(TaskInfo taskInfo, TaskSpecification taskSpecification) throws InvalidRequirementException {
-        return getReplacementOfferRequirement(taskInfo);
+    public List<RecoveryRequirement> getPermanentRecoveryRequirements(List<TaskInfo> failedTasks)
+            throws InvalidRequirementException {
+
+        List<RecoveryRequirement> recoveryRequirements = new ArrayList<>();
+        for (TaskInfo taskInfo : failedTasks) {
+            String configName = OfferUtils.getConfigName(taskInfo);
+            int brokerId = OfferUtils.nameToId(taskInfo.getName());
+
+            try {
+                recoveryRequirements.add(
+                        new DefaultRecoveryRequirement(getNewOfferRequirement(configName, brokerId),
+                        RecoveryRequirement.RecoveryType.PERMANENT));
+            } catch (IOException | URISyntaxException e) {
+                log.error("Failed to generate permanent recovery requirement.", e);
+                throw new InvalidRequirementException(e);
+            }
+        }
+
+        return recoveryRequirements;
     }
 
     @Override
@@ -491,5 +517,4 @@ public class PersistentOfferRequirementProvider implements KafkaOfferRequirement
     private CommandInfo.URI uri(String uri) {
         return CommandInfo.URI.newBuilder().setValue(uri).build();
     }
-
 }

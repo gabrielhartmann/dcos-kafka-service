@@ -25,7 +25,6 @@ import org.apache.mesos.api.JettyApiServer;
 import org.apache.mesos.dcos.DcosCluster;
 import org.apache.mesos.offer.InvalidRequirementException;
 import org.apache.mesos.offer.OfferAccepter;
-import org.apache.mesos.offer.OfferRequirementProvider;
 import org.apache.mesos.reconciliation.DefaultReconciler;
 import org.apache.mesos.reconciliation.Reconciler;
 import org.apache.mesos.scheduler.DefaultScheduler;
@@ -33,6 +32,7 @@ import org.apache.mesos.scheduler.SchedulerDriverFactory;
 import org.apache.mesos.scheduler.SchedulerUtils;
 import org.apache.mesos.scheduler.plan.*;
 import org.apache.mesos.scheduler.plan.strategy.SerialStrategy;
+import org.apache.mesos.scheduler.recovery.RecoveryRequirementProvider;
 import org.apache.mesos.state.StateStore;
 
 import java.io.IOException;
@@ -139,15 +139,15 @@ public class KafkaScheduler extends DefaultScheduler implements Runnable {
             KafkaState kafkaState,
             OfferAccepter offerAccepter,
             Reconciler reconciler,
-            OfferRequirementProvider offerRequirementProvider) {
+            RecoveryRequirementProvider offerRequirementProvider) {
 
         super(
                 frameworkName,
-                deploymentPlan,
+                new DefaultPlanManager(deploymentPlan),
+                offerRequirementProvider,
                 zkConnectionString,
                 permanentFailureTimeoutSec,
-                destructiveRecoveryDelaySec,
-                offerRequirementProvider);
+                destructiveRecoveryDelaySec);
 
         this.kafkaSchedulerConfiguration = kafkaSchedulerConfiguration;
         this.envConfig = envConfig;
