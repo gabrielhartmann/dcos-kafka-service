@@ -119,7 +119,7 @@ public class PersistentOfferRequirementProviderTest {
     Assert.assertEquals("", diskResource.getReservation().getLabels().getLabelsList().get(0).getValue());
 
     Labels labels = taskInfo.getLabels();
-    Assert.assertEquals("config_target", labels.getLabelsList().get(0).getKey());
+    Assert.assertEquals(PersistentOfferRequirementProvider.CONFIG_TARGET_KEY, labels.getLabelsList().get(0).getKey());
     Assert.assertEquals(KafkaTestUtils.testConfigName, labels.getLabelsList().get(0).getValue());
 
     Assert.assertTrue(taskInfo.hasHealthCheck());
@@ -130,7 +130,7 @@ public class PersistentOfferRequirementProviderTest {
     Assert.assertEquals(3, healthCheck.getConsecutiveFailures(), 0.0);
     Assert.assertEquals(10, healthCheck.getGracePeriodSeconds(), 0.0);
 
-    final ExecutorInfo executorInfo = req.getExecutorRequirement().getExecutorInfo();
+    final ExecutorInfo executorInfo = req.getExecutorRequirementOptional().get().getExecutorInfo();
 
     CommandInfo cmd = executorInfo.getCommand();
     Assert.assertEquals(4, cmd.getUrisList().size());
@@ -141,8 +141,7 @@ public class PersistentOfferRequirementProviderTest {
 
     String portString = String.valueOf(portsResource.getRanges().getRangeList().get(0).getBegin());
 
-    final CommandInfo kafkaTaskData = CommandInfo.parseFrom(taskInfo.getData());
-    final Map<String, String> envFromTask = TaskUtils.fromEnvironmentToMap(kafkaTaskData.getEnvironment());
+    final Map<String, String> envFromTask = TaskUtils.fromEnvironmentToMap(taskInfo.getCommand().getEnvironment());
 
     Map<String, String> expectedEnvMap = new HashMap<>();
     expectedEnvMap.put("KAFKA_ZOOKEEPER_URI", KafkaTestUtils.testKafkaZkUri);
@@ -151,12 +150,12 @@ public class PersistentOfferRequirementProviderTest {
     expectedEnvMap.put("KAFKA_OVERRIDE_LOG_DIRS", "kafka-volume-9a67ba10-644c-4ef2-b764-e7df6e6a66e5/broker-0");
     expectedEnvMap.put("KAFKA_OVERRIDE_LISTENERS", "PLAINTEXT://:123a");
     expectedEnvMap.put("KAFKA_VER_NAME", KafkaTestUtils.testKafkaVerName);
-    expectedEnvMap.put("CONFIG_ID", KafkaTestUtils.testConfigName);
     expectedEnvMap.put("KAFKA_OVERRIDE_PORT", portString);
-    expectedEnvMap.put("KAFKA_DYNAMIC_BROKER_PORT", Boolean.toString(false));
     expectedEnvMap.put("KAFKA_OVERRIDE_BROKER_ID", String.valueOf(0));
     expectedEnvMap.put("KAFKA_HEAP_OPTS", "-Xms500M -Xmx500M");
     expectedEnvMap.put("TASK_TYPE", KafkaTask.BROKER.name());
+
+    System.out.println(envFromTask);
 
     Assert.assertEquals(expectedEnvMap.size(), envFromTask.size());
 
@@ -177,7 +176,7 @@ public class PersistentOfferRequirementProviderTest {
       }
     }
 
-    Assert.assertEquals(286, kafkaTaskData.getValue().length());
+    Assert.assertEquals(286, taskInfo.getCommand().getValue().length());
     Assert.assertEquals(65, cmd.getValue().length());
   }
 
@@ -190,7 +189,7 @@ public class PersistentOfferRequirementProviderTest {
             "cpus",
             0.5);
     TaskInfo inTaskInfo = getTaskInfo(Arrays.asList(cpu));
-    OfferRequirement req = provider.getReplacementOfferRequirement(inTaskInfo);
+    OfferRequirement req = provider.getReplacementOfferRequirement(TaskUtils.packTaskInfo(inTaskInfo));
     TaskInfo outTaskInfo = req.getTaskRequirements().iterator().next().getTaskInfo();
     Assert.assertEquals(cpu, outTaskInfo.getResourcesList().get(0));
   }
@@ -230,23 +229,20 @@ public class PersistentOfferRequirementProviderTest {
     Assert.assertEquals("mem", updatedMem.getName());
     Assert.assertEquals(1000, updatedMem.getScalar().getValue(), 0.0);
 
-    Resource updatedDisk = getResource(req, "disk");
-    Assert.assertEquals("disk", updatedDisk.getName());
-    Assert.assertEquals(5000, updatedDisk.getScalar().getValue(), 0.0);
-
     Assert.assertEquals(1, req.getTaskRequirements().size());
-    final TaskInfo taskInfo = req.getTaskRequirements().iterator().next().getTaskInfo();
-    final Environment environment = CommandInfo.parseFrom(taskInfo.getData()).getEnvironment();
+    TaskInfo taskInfo = req.getTaskRequirements().iterator().next().getTaskInfo();
+    taskInfo = TaskUtils.unpackTaskInfo(taskInfo);
+    final Environment environment = taskInfo.getCommand().getEnvironment();
     List<Environment.Variable> variablesList = environment.getVariablesList();
     List<Environment.Variable> envVariables = new ArrayList<>(variablesList);
     envVariables.sort((v1, v2) -> v1.getName().compareTo(v2.getName()));
     Assert.assertEquals(3, envVariables.size());
-    Assert.assertEquals("KAFKA_DYNAMIC_BROKER_PORT", envVariables.get(0).getName());
-    Assert.assertEquals(Boolean.toString(false), envVariables.get(0).getValue());
-    Assert.assertEquals("KAFKA_HEAP_OPTS", envVariables.get(1).getName());
-    Assert.assertEquals("-Xms500M -Xmx500M", envVariables.get(1).getValue());
-    Assert.assertEquals("KAFKA_OVERRIDE_PORT", envVariables.get(2).getName());
-    Assert.assertEquals("9092", envVariables.get(2).getValue());
+    Assert.assertEquals("KAFKA_HEAP_OPTS", envVariables.get(0).getName());
+    Assert.assertEquals("-Xms500M -Xmx500M", envVariables.get(0).getValue());
+    Assert.assertEquals("KAFKA_OVERRIDE_PORT", envVariables.get(1).getName());
+    Assert.assertEquals("9092", envVariables.get(1).getValue());
+    Assert.assertEquals("KAFKA_VER_NAME", envVariables.get(2).getName());
+    Assert.assertEquals("test-kafka-ver-name", envVariables.get(2).getValue());
   }
 
   private static Resource getResource(OfferRequirement req, String name) {
@@ -273,7 +269,7 @@ public class PersistentOfferRequirementProviderTest {
                             .setValue("-Xms" + heapConfig.getSizeMb() + "M -Xmx" + heapConfig.getSizeMb() + "M")))
             .build();
     taskBuilder.setCommand(newCommand);
-    return taskBuilder.build();
+    return TaskUtils.packTaskInfo(taskBuilder.build());
   }
 
   private TaskInfo getTaskInfo(List<Resource> resources) {

@@ -16,7 +16,6 @@ DC/OS Apache Kafka Service Guide
 - [Minimal Installation](#minimal-installation)
 - [Custom Installation](#custom-installation)
 - [Multiple Kafka cluster installation](#multiple-kafka-cluster-installation)
-- [Running Integration Tests](#running-integration-tests)
 - [Uninstall](#uninstall)
 
 [Configuring](#configuring)
