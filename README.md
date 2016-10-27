@@ -38,7 +38,7 @@ DC/OS Apache Kafka Service Guide
 - [Configuration Update Errors](#configuration-update-errors)
 - [Replacing a Permanently Failed Server](#replacing-a-permanently-failed-server)
 
-[REST API Reference]
+[REST API Reference](#api-reference)
 - [Connection Information](#connection-information)
 - [Broker Operations](#broker-operations)
 - [Topic Operations](#topic-operations)
