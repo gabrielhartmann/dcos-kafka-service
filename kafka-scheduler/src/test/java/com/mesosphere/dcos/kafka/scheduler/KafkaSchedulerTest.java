@@ -102,7 +102,7 @@ public class KafkaSchedulerTest {
     }
 
     private KafkaScheduler getTestKafkaScheduler() throws Exception {
-        return new KafkaScheduler(dropwizardConfiguration.getSchedulerConfiguration(), environment);
+        return KafkaScheduler.create(dropwizardConfiguration.getSchedulerConfiguration(), environment);
     }
 
     private Protos.FrameworkID getTestFrameworkId() {

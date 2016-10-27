@@ -67,7 +67,7 @@ public final class Main extends Application<DropwizardConfiguration> {
     this.environment = environment;
 
     final KafkaScheduler kafkaScheduler =
-            new KafkaScheduler(dropwizardConfiguration.getSchedulerConfiguration(), getEnvironment());
+            KafkaScheduler.create(dropwizardConfiguration.getSchedulerConfiguration(), getEnvironment());
 
     registerHealthChecks(kafkaScheduler, getEnvironment());
 

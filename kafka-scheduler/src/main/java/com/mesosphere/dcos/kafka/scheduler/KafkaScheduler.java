@@ -12,14 +12,14 @@ import com.mesosphere.dcos.kafka.offer.PersistentOperationRecorder;
 import com.mesosphere.dcos.kafka.plan.KafkaUpdatePhase;
 import com.mesosphere.dcos.kafka.state.ClusterState;
 import com.mesosphere.dcos.kafka.state.FrameworkState;
+import com.mesosphere.dcos.kafka.web.BrokerController;
 import com.mesosphere.dcos.kafka.web.ConnectionController;
 import com.mesosphere.dcos.kafka.web.TopicController;
 import io.dropwizard.setup.Environment;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.mesos.Protos;
-import org.apache.mesos.Protos.*;
-import org.apache.mesos.Scheduler;
+import org.apache.mesos.Protos.FrameworkInfo;
 import org.apache.mesos.SchedulerDriver;
 import org.apache.mesos.api.JettyApiServer;
 import org.apache.mesos.dcos.DcosCluster;
@@ -41,7 +41,7 @@ import java.util.*;
 /**
  * Kafka Framework Scheduler.
  */
-public class KafkaScheduler implements Scheduler, Runnable {
+public class KafkaScheduler extends DefaultScheduler implements Runnable {
     private static final Log LOGGER = LogFactory.getLog(KafkaScheduler.class);
 
     private static final int TWO_WEEK_SEC = 2 * 7 * 24 * 60 * 60;
@@ -50,24 +50,15 @@ public class KafkaScheduler implements Scheduler, Runnable {
     private final KafkaSchedulerConfiguration envConfig;
     private final FrameworkState frameworkState;
     private final KafkaState kafkaState;
-    private final ClusterState clusterState;
-
-
-    private final OfferAccepter offerAccepter;
-    private final Reconciler reconciler;
-    private final DefaultPlan installPlan;
-    private final PersistentOfferRequirementProvider offerRequirementProvider;
     private final KafkaSchedulerConfiguration kafkaSchedulerConfiguration;
-    private final DefaultScheduler defaultScheduler;
-    private final DefaultPlanManager defaultPlanManager;
+    private final PlanManager defaultPlanManager;
     private SchedulerDriver driver;
-    private boolean registered;
+    private boolean registered = false;
 
 
-    public KafkaScheduler(KafkaSchedulerConfiguration configuration, Environment environment)
+    public static KafkaScheduler create(KafkaSchedulerConfiguration configuration, Environment environment)
             throws IOException, URISyntaxException, InvalidRequirementException {
 
-        this.kafkaSchedulerConfiguration = configuration;
         ConfigStateUpdater configStateUpdater = new ConfigStateUpdater(configuration);
         List<String> stageErrors = new ArrayList<>();
         KafkaSchedulerConfiguration targetConfigToUse;
@@ -84,18 +75,18 @@ public class KafkaScheduler implements Scheduler, Runnable {
             }
         }
 
-        configState = configStateUpdater.getConfigState();
-        frameworkState = configStateUpdater.getFrameworkState();
-        kafkaState = configStateUpdater.getKafkaState();
+        KafkaConfigState configState = configStateUpdater.getConfigState();
+        FrameworkState frameworkState = configStateUpdater.getFrameworkState();
+        KafkaState kafkaState = configStateUpdater.getKafkaState();
 
-        envConfig = targetConfigToUse;
-        reconciler = new DefaultReconciler(frameworkState.getStateStore());
-        clusterState = new ClusterState();
+        KafkaSchedulerConfiguration envConfig = targetConfigToUse;
+        Reconciler reconciler = new DefaultReconciler(frameworkState.getStateStore());
+        ClusterState clusterState = new ClusterState();
 
-        offerAccepter =
+        OfferAccepter offerAccepter =
                 new OfferAccepter(Arrays.asList(new PersistentOperationRecorder(frameworkState)));
 
-        this.offerRequirementProvider =
+        PersistentOfferRequirementProvider offerRequirementProvider =
                 new PersistentOfferRequirementProvider(configState, clusterState);
 
         KafkaUpdatePhase updatePhase = new KafkaUpdatePhase(
@@ -109,11 +100,11 @@ public class KafkaScheduler implements Scheduler, Runnable {
                 new DefaultPhase("update", updatePhase.getBlocks(), new SerialStrategy<>(), Collections.emptyList()));
 
         // If config validation had errors, expose them via the Stage.
-        this.installPlan = stageErrors.isEmpty()
+        Plan installPlan = stageErrors.isEmpty()
                 ? new DefaultPlan("deployment", phases)
                 : new DefaultPlan("deployment", phases, new SerialStrategy<>(), stageErrors);
 
-        defaultPlanManager = new DefaultPlanManager(installPlan);
+        PlanManager defaultPlanManager = new DefaultPlanManager(installPlan);
 
         Optional<Integer> gracePeriodSecs = Optional.empty();
 
@@ -121,12 +112,74 @@ public class KafkaScheduler implements Scheduler, Runnable {
             gracePeriodSecs = Optional.of(configuration.getRecoveryConfiguration().getGracePeriodSecs());
         }
 
-        defaultScheduler = DefaultScheduler.create(
-                configuration.getServiceConfiguration().getName(),
+        return new KafkaScheduler(configuration.getServiceConfiguration().getName(),
                 defaultPlanManager,
                 configuration.getKafkaConfiguration().getMesosZkUri(),
                 gracePeriodSecs,
-                configuration.getRecoveryConfiguration().getRecoveryDelaySecs());
+                configuration.getRecoveryConfiguration().getRecoveryDelaySecs(),
+                configuration,
+                envConfig,
+                configState,
+                frameworkState,
+                kafkaState,
+                offerAccepter,
+                reconciler,
+                defaultPlanManager);
+    }
+
+    protected KafkaScheduler(
+            String frameworkName,
+            PlanManager deploymentPlanManager,
+            String zkConnectionString,
+            Optional<Integer> permanentFailureTimeoutSec,
+            Integer destructiveRecoveryDelaySec,
+            KafkaSchedulerConfiguration kafkaSchedulerConfiguration,
+            KafkaSchedulerConfiguration envConfig,
+            KafkaConfigState configState,
+            FrameworkState frameworkState,
+            KafkaState kafkaState,
+            OfferAccepter offerAccepter,
+            Reconciler reconciler,
+            PlanManager defaultPlanManager) {
+        super(
+                frameworkName,
+                deploymentPlanManager,
+                zkConnectionString,
+                permanentFailureTimeoutSec,
+                destructiveRecoveryDelaySec);
+
+        this.kafkaSchedulerConfiguration = kafkaSchedulerConfiguration;
+        this.envConfig = envConfig;
+        this.configState = configState;
+        this.frameworkState = frameworkState;
+        this.kafkaState = kafkaState;
+        this.offerAccepter = offerAccepter;
+        this.reconciler = reconciler;
+        this.defaultPlanManager = defaultPlanManager;
+    }
+
+    @Override
+    public void registered(SchedulerDriver driver, Protos.FrameworkID frameworkId, Protos.MasterInfo masterInfo) {
+        super.registered(driver, frameworkId, masterInfo);
+        registered = true;
+    }
+
+    @Override
+    public void reregistered(SchedulerDriver driver, Protos.MasterInfo masterInfo) {
+        super.reregistered(driver, masterInfo);
+        registered = true;
+    }
+
+    @Override
+    public void disconnected(SchedulerDriver driver) {
+        super.disconnected(driver);
+        registered = false;
+    }
+
+    @Override
+    public void error(SchedulerDriver driver, String message) {
+        super.error(driver, message);
+        registered = false;
     }
 
     @Override
@@ -139,7 +192,7 @@ public class KafkaScheduler implements Scheduler, Runnable {
                 kafkaSchedulerConfiguration.getServiceConfiguration().getName(),
                 kafkaSchedulerConfiguration.getServiceConfiguration().getUser(),
                 frameworkState.getStateStore());
-        startApiServer(defaultScheduler, Integer.valueOf(System.getenv("PORT1")), kafkaSchedulerConfiguration);
+        startApiServer(this, Integer.valueOf(System.getenv("PORT1")), kafkaSchedulerConfiguration);
         LOGGER.info("Registering framework with: " + fwkInfo);
         registerFramework(this, fwkInfo, zkPath);
     }
@@ -164,6 +217,7 @@ public class KafkaScheduler implements Scheduler, Runnable {
                     resources.add(new TopicController(
                             new CmdExecutor(kafkaSchedulerConfiguration, getKafkaState()),
                             getKafkaState()));
+                    resources.add(new BrokerController(kafkaState, taskKiller));
                     apiServer = new JettyApiServer(apiPort, defaultScheduler.getResources());
                     apiServer.start();
                 } catch (Exception e) {
@@ -180,59 +234,6 @@ public class KafkaScheduler implements Scheduler, Runnable {
                 }
             }
         }).start();
-    }
-
-    @Override
-    public void registered(SchedulerDriver driver, FrameworkID frameworkId, MasterInfo masterInfo) {
-        defaultScheduler.registered(driver, frameworkId, masterInfo);
-        registered = true;
-    }
-
-    @Override
-    public void reregistered(SchedulerDriver driver, MasterInfo masterInfo) {
-        defaultScheduler.reregistered(driver, masterInfo);
-        registered = true;
-    }
-
-    @Override
-    public void resourceOffers(SchedulerDriver driver, List<Offer> offers) {
-        defaultScheduler.resourceOffers(driver, offers);
-    }
-
-    @Override
-    public void offerRescinded(SchedulerDriver driver, OfferID offerId) {
-        defaultScheduler.offerRescinded(driver, offerId);
-    }
-
-    @Override
-    public void statusUpdate(SchedulerDriver driver, TaskStatus status) {
-        defaultScheduler.statusUpdate(driver, status);
-    }
-
-    @Override
-    public void frameworkMessage(SchedulerDriver driver, ExecutorID executorId, SlaveID slaveId, byte[] data) {
-        defaultScheduler.frameworkMessage(driver, executorId, slaveId, data);
-    }
-
-    @Override
-    public void disconnected(SchedulerDriver driver) {
-        defaultScheduler.disconnected(driver);
-        registered = false;
-    }
-
-    @Override
-    public void slaveLost(SchedulerDriver driver, SlaveID slaveId) {
-        defaultScheduler.slaveLost(driver, slaveId);
-    }
-
-    @Override
-    public void executorLost(SchedulerDriver driver, ExecutorID executorId, SlaveID slaveId, int status) {
-        defaultScheduler.executorLost(driver, executorId, slaveId, status);
-    }
-
-    @Override
-    public void error(SchedulerDriver driver, String message) {
-        defaultScheduler.error(driver, message);
     }
 
     private Thread.UncaughtExceptionHandler getUncaughtExceptionHandler() {
