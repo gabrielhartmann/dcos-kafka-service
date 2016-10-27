@@ -38,7 +38,7 @@ DC/OS Apache Kafka Service Guide
 - [Configuration Update Errors](#configuration-update-errors)
 - [Replacing a Permanently Failed Server](#replacing-a-permanently-failed-server)
 
-[API Reference](#api-reference)
+[
 - [Connection Information](#connection-information)
 - [Broker Operations](#broker-operations)
 - [Topic Operations](#topic-operations)
@@ -735,10 +735,14 @@ The following `curl` example demonstrates how to retrive connection a set of bro
 
     $ curl -H "Authorization: token=$AUTH_TOKEN" "$DCOS_URI/service/kafka/v1/connection"
 
-
+<a name="#rest-api-authentication"></a>
 ## REST API Authentication
 
-Depending on how the cluster is configured, commands using the REST API must be authenticated using one of the following methods. This authentication is only applicable for interacting with the Kafka REST API directly. Access the underlying Kafka Brokers themselves with the standard Kafka APIs.
+Depending on how the cluster is configured, commands using the REST API may need to be authenticated. These instructions only apply to interacting with the Kafka REST API directly. Access the underlying Kafka Brokers themselves with the standard Kafka APIs.
+
+If your DC/OS Enterprise installation requires encryption, you must also use the `ca-cert` flag when making REST calls. Refer to [Obtaining and passing the DC/OS
+certificate in cURL requests](https://docs.mesosphere.com/1.8/administration/tls-ssl/#get-dcos-cert) for information on how to use the `--cacert` flag. [If encryption is not
+required](https://docs.mesosphere.com/1.8/administration/tls-ssl/), you can omit the --cacert flags.
 
 All `curl` examples in this document assume that an auth token has already been retrieved using one of the following methods and stored in an environment variable named `AUTH_TOKEN`. See the following documentation for how to retrieve this token from the authentication service.
 
@@ -1058,6 +1062,9 @@ For ongoing maintenance of the Kafka cluster itself, the Kafka service exposes a
 The examples here provide equivalent commands using both the [DC/OS CLI](https://github.com/mesosphere/dcos-cli) (with the `kafka` CLI module installed) and `curl`. These examples assume a service named `kafka` (the default), and the `curl` examples assume a DC/OS cluster path of `$DCOS_URI`. Replace these with appropriate values as needed.
 
 The `dcos kafka` CLI commands have a `--name` argument, allowing the user to specify which Kafka instance to query. The value defaults to `kafka`, so it's technically redundant to specify `--name=kafka` in these examples.
+
+Depending on your version of DC/OS and the configuration of your cluster, you may need to authenticate your REST calls. See the REST API Authentication section for more
+information.
 
 ## Connection Information
 
@@ -1808,7 +1815,7 @@ The security features introduced in Apache Kafka 0.9 are not supported at this t
  [4]: #custom-install-configuration
  [5]: https://github.com/mesosphere/dcos-vagrant
  [6]: #configuration-options
- [7]: https://docs.mesosphere.com/framework_cleaner/
+ [7]: https://docs.mesosphere.com/1.8/usage/managing-services/uninstall/#framework-cleaner 
  [8]: #broker-count
  [9]: #using-the-rest-api
  [10]: #rest-api-authentication
