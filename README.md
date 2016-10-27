@@ -38,7 +38,7 @@ DC/OS Apache Kafka Service Guide
 - [Configuration Update Errors](#configuration-update-errors)
 - [Replacing a Permanently Failed Server](#replacing-a-permanently-failed-server)
 
-[
+[REST API Reference]
 - [Connection Information](#connection-information)
 - [Broker Operations](#broker-operations)
 - [Topic Operations](#topic-operations)
@@ -1063,8 +1063,7 @@ The examples here provide equivalent commands using both the [DC/OS CLI](https:/
 
 The `dcos kafka` CLI commands have a `--name` argument, allowing the user to specify which Kafka instance to query. The value defaults to `kafka`, so it's technically redundant to specify `--name=kafka` in these examples.
 
-Depending on your version of DC/OS and the configuration of your cluster, you may need to authenticate your REST calls. See the REST API Authentication section for more
-information.
+Depending on your version of DC/OS and the configuration of your cluster, you may need to authenticate your REST calls. See the REST API Authentication entry in the Connecting Clients section for more information.
 
 ## Connection Information
 
