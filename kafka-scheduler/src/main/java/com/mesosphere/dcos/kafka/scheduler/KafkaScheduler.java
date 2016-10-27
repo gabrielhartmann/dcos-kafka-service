@@ -25,6 +25,7 @@ import org.apache.mesos.api.JettyApiServer;
 import org.apache.mesos.dcos.DcosCluster;
 import org.apache.mesos.offer.InvalidRequirementException;
 import org.apache.mesos.offer.OfferAccepter;
+import org.apache.mesos.offer.OfferRequirementProvider;
 import org.apache.mesos.reconciliation.DefaultReconciler;
 import org.apache.mesos.reconciliation.Reconciler;
 import org.apache.mesos.scheduler.DefaultScheduler;
@@ -51,7 +52,6 @@ public class KafkaScheduler extends DefaultScheduler implements Runnable {
     private final FrameworkState frameworkState;
     private final KafkaState kafkaState;
     private final KafkaSchedulerConfiguration kafkaSchedulerConfiguration;
-    private final PlanManager defaultPlanManager;
     private SchedulerDriver driver;
     private boolean registered = false;
 
@@ -100,11 +100,9 @@ public class KafkaScheduler extends DefaultScheduler implements Runnable {
                 new DefaultPhase("update", updatePhase.getBlocks(), new SerialStrategy<>(), Collections.emptyList()));
 
         // If config validation had errors, expose them via the Stage.
-        Plan installPlan = stageErrors.isEmpty()
+        Plan deploymentPlan = stageErrors.isEmpty()
                 ? new DefaultPlan("deployment", phases)
                 : new DefaultPlan("deployment", phases, new SerialStrategy<>(), stageErrors);
-
-        PlanManager defaultPlanManager = new DefaultPlanManager(installPlan);
 
         Optional<Integer> gracePeriodSecs = Optional.empty();
 
@@ -112,8 +110,9 @@ public class KafkaScheduler extends DefaultScheduler implements Runnable {
             gracePeriodSecs = Optional.of(configuration.getRecoveryConfiguration().getGracePeriodSecs());
         }
 
-        return new KafkaScheduler(configuration.getServiceConfiguration().getName(),
-                defaultPlanManager,
+        return new KafkaScheduler(
+                configuration.getServiceConfiguration().getName(),
+                deploymentPlan,
                 configuration.getKafkaConfiguration().getMesosZkUri(),
                 gracePeriodSecs,
                 configuration.getRecoveryConfiguration().getRecoveryDelaySecs(),
@@ -124,12 +123,12 @@ public class KafkaScheduler extends DefaultScheduler implements Runnable {
                 kafkaState,
                 offerAccepter,
                 reconciler,
-                defaultPlanManager);
+                offerRequirementProvider);
     }
 
     protected KafkaScheduler(
             String frameworkName,
-            PlanManager deploymentPlanManager,
+            Plan deploymentPlan,
             String zkConnectionString,
             Optional<Integer> permanentFailureTimeoutSec,
             Integer destructiveRecoveryDelaySec,
@@ -140,13 +139,15 @@ public class KafkaScheduler extends DefaultScheduler implements Runnable {
             KafkaState kafkaState,
             OfferAccepter offerAccepter,
             Reconciler reconciler,
-            PlanManager defaultPlanManager) {
+            OfferRequirementProvider offerRequirementProvider) {
+
         super(
                 frameworkName,
-                deploymentPlanManager,
+                deploymentPlan,
                 zkConnectionString,
                 permanentFailureTimeoutSec,
-                destructiveRecoveryDelaySec);
+                destructiveRecoveryDelaySec,
+                offerRequirementProvider);
 
         this.kafkaSchedulerConfiguration = kafkaSchedulerConfiguration;
         this.envConfig = envConfig;
@@ -155,7 +156,6 @@ public class KafkaScheduler extends DefaultScheduler implements Runnable {
         this.kafkaState = kafkaState;
         this.offerAccepter = offerAccepter;
         this.reconciler = reconciler;
-        this.defaultPlanManager = defaultPlanManager;
     }
 
     @Override
@@ -285,7 +285,7 @@ public class KafkaScheduler extends DefaultScheduler implements Runnable {
     }
 
     public PlanManager getPlanManager() {
-        return defaultPlanManager;
+        return deployPlanManager;
     }
 
     public boolean isRegistered() {

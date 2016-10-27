@@ -14,13 +14,14 @@ import org.apache.mesos.Protos.Value.Ranges;
 import org.apache.mesos.config.ConfigStoreException;
 import org.apache.mesos.offer.*;
 import org.apache.mesos.offer.constrain.PlacementRuleGenerator;
+import org.apache.mesos.specification.TaskSpecification;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 
-public class PersistentOfferRequirementProvider implements KafkaOfferRequirementProvider {
+public class PersistentOfferRequirementProvider implements KafkaOfferRequirementProvider, OfferRequirementProvider {
     private final Log log = LogFactory.getLog(PersistentOfferRequirementProvider.class);
 
     public static final String CONFIG_ID_KEY = "CONFIG_ID";
@@ -35,6 +36,18 @@ public class PersistentOfferRequirementProvider implements KafkaOfferRequirement
             ClusterState clusterState) {
         this.configState = configState;
         this.clusterState = clusterState;
+    }
+
+    @Override
+    public OfferRequirement getNewOfferRequirement(TaskSpecification taskSpecification) throws InvalidRequirementException {
+        throw new InvalidRequirementException(
+                "The PersistentOfferRequirementProvider should not be used to generate OfferRequirements" +
+                        " from TaskSpecifications");
+    }
+
+    @Override
+    public OfferRequirement getExistingOfferRequirement(TaskInfo taskInfo, TaskSpecification taskSpecification) throws InvalidRequirementException {
+        return getReplacementOfferRequirement(taskInfo);
     }
 
     @Override
@@ -478,4 +491,5 @@ public class PersistentOfferRequirementProvider implements KafkaOfferRequirement
     private CommandInfo.URI uri(String uri) {
         return CommandInfo.URI.newBuilder().setValue(uri).build();
     }
+
 }
