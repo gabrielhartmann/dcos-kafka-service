@@ -727,17 +727,13 @@ The following command can be executed from the CLI in order to retrieve a set of
 
     dcos kafka --name=<name> connection
 
-
-## The REST API
+## Using the REST API
 
 REST API requests must be authenticated. For more information, see the [REST API Authentication](#rest-auth) section of this document.
 
-## Using the REST API
+The following `curl` example demonstrates how to retrive connection a set of brokers to connect to using the REST API.
 
-The following `curl` example demonstrates how to retrieve a set of brokers to connect to.
- 
-
-    $ curl -H "Authorization: token=$AUTH_TOKEN" "<dcos_url>/service/kafka/v1/connection"
+    $ curl -H "Authorization: token=$AUTH_TOKEN" "$DCOS_URI/service/kafka/v1/connection"
 
 ### Connection Info Response
 
@@ -972,7 +968,7 @@ In the example below, the broker with id `0` will be replaced on new machine as 
     $ dcos kafka broker replace 0
 
 <a name="api-reference"></a>
-# API Reference
+# REST API Reference
 
 For ongoing maintenance of the Kafka cluster itself, the Kafka service exposes an HTTP API whose structure is designed to roughly match the tools provided by the Kafka distribution, such as `bin/kafka-topics.sh`.
 
@@ -981,12 +977,12 @@ The examples here provide equivalent commands using both the [DC/OS CLI](https:/
 The `dcos kafka` CLI commands have a `--name` argument, allowing the user to specify which Kafka instance to query. The value defaults to `kafka`, so it's technically redundant to specify `--name=kafka` in these examples.
 
 <a name="#rest-auth"></a>
-## REST API Authentication
+# REST API Authentication
 REST API requests must be authenticated. This authentication is only applicable for interacting with the Kafka REST API directly. You do not need the token to access the Kafka nodes themselves.
  
-If you are using Enterprise DC/OS, follow these instructions to [create a service account and an authentication token](https://docs.mesosphere.com/1.8/administration/id-and-access-mgt/service-auth/custom-service-auth/). You can then configure your service to automatically refresh the authentication token when it expires. To get started more quickly, you can also [get the authentication token without a service account](https://docs.mesosphere.com/1.8/administration/id-and-access-mgt/iam-api/), but you will need to manually refresh the token.
+If you are using Enterprise DC/OS, follow these instructions to [create a service account and an authentication token](http://docs.mesosphere.com/1.9/administration/id-and-access-mgt/service-auth/custom-service-auth/). You can then configure your service to automatically refresh the authentication token when it expires. To get started more quickly, you can also [get the authentication token without a service account](http://docs.mesosphere.com/1.9/administration/id-and-access-mgt/iam-api/), but you will need to manually refresh the token.
 
-If you are using open source DC/OS, follow these instructions to [pass your HTTP API token to the DC/OS endpoint](https://docs.mesosphere.com/1.8/administration/id-and-access-mgt/auth-api/#passing-your-http-api-token-to-dc-os-endpoints). 
+If you are using open source DC/OS, follow these instructions to [pass your HTTP API token to the DC/OS endpoint](http://docs.mesosphere.com/1.9/administration/id-and-access-mgt/auth-api/#passing-your-http-api-token-to-dc-os-endpoints). 
 
 Once you have the authentication token, you can store it in an environment variable and reference it in your REST API calls:
 
@@ -996,7 +992,14 @@ $ export AUTH_TOKEN=uSeR_t0k3n
 
 The `curl` examples in this document assume that an auth token has been stored in an environment variable named `AUTH_TOKEN`.
 
-If you are using Enterprise DC/OS, the security mode of your installation may also require the `--ca-cert` flag when making REST calls. Refer to [Obtaining and passing the DC/OS certificate in cURL requests](/1.8/administration/tls-ssl/#get-dcos-cert) for information on how to use the `--cacert` flag. [If your security mode is `disabled`](https://docs.mesosphere.com/1.8/administration/tls-ssl/), do not use the `--ca-cert` flag.
+If you are using Enterprise DC/OS, the security mode of your installation may also require the `--ca-cert` flag when making REST calls. Refer to [Obtaining and passing the DC/OS certificate in cURL requests](http://docs.mesosphere.com/1.9/administration/tls-ssl/#get-dcos-cert) for information on how to use the `--cacert` flag. [If your security mode is `disabled`](http://docs.mesosphere.com/1.9/administration/tls-ssl/), do not use the `--ca-cert` flag.
+
+For ongoing maintenance of the Kafka cluster itself, the Kafka service exposes an HTTP API whose structure is designed to roughly match the tools provided by the Kafka distribution, such as `bin/kafka-topics.sh`.
+
+The examples here provide equivalent commands using both `[dcos-cli](https://github.com/mesosphere/dcos-cli)` (with the `kafka` CLI module installed) and `curl`. These examples assume a service named `kafka` (the default), and the `curl` examples assume a DC/OS cluster path of `$DCOS_URI`. Replace these with appropriate values as needed.
+
+The `dcos kafka` CLI commands have a `--name` argument, allowing the user to specify which Kafka instance to query. The value defaults to `kafka`, so it's technically redundant to specify `--name=kafka` in these examples.
+
 
 ## Connection Information
 
@@ -1747,7 +1750,7 @@ The security features introduced in Apache Kafka 0.9 are not supported at this t
  [4]: #custom-install-configuration
  [5]: https://github.com/mesosphere/dcos-vagrant
  [6]: #configuration-options
- [7]: https://docs.mesosphere.com/framework_cleaner/
+ [7]: https://docs.mesosphere.com/1.8/usage/managing-services/uninstall/#framework-cleaner 
  [8]: #broker-count
  [9]: #using-the-rest-api
  [10]: #rest-auth
