@@ -976,7 +976,7 @@ The examples here provide equivalent commands using both the [DC/OS CLI](https:/
 
 The `dcos kafka` CLI commands have a `--name` argument, allowing the user to specify which Kafka instance to query. The value defaults to `kafka`, so it's technically redundant to specify `--name=kafka` in these examples.
 
-<a name="#rest-auth"></a>
+<a name="rest-auth"></a>
 # REST API Authentication
 REST API requests must be authenticated. This authentication is only applicable for interacting with the Kafka REST API directly. You do not need the token to access the Kafka nodes themselves.
  
@@ -993,13 +993,6 @@ $ export AUTH_TOKEN=uSeR_t0k3n
 The `curl` examples in this document assume that an auth token has been stored in an environment variable named `AUTH_TOKEN`.
 
 If you are using Enterprise DC/OS, the security mode of your installation may also require the `--ca-cert` flag when making REST calls. Refer to [Obtaining and passing the DC/OS certificate in cURL requests](http://docs.mesosphere.com/1.9/administration/tls-ssl/#get-dcos-cert) for information on how to use the `--cacert` flag. [If your security mode is `disabled`](http://docs.mesosphere.com/1.9/administration/tls-ssl/), do not use the `--ca-cert` flag.
-
-For ongoing maintenance of the Kafka cluster itself, the Kafka service exposes an HTTP API whose structure is designed to roughly match the tools provided by the Kafka distribution, such as `bin/kafka-topics.sh`.
-
-The examples here provide equivalent commands using both `[dcos-cli](https://github.com/mesosphere/dcos-cli)` (with the `kafka` CLI module installed) and `curl`. These examples assume a service named `kafka` (the default), and the `curl` examples assume a DC/OS cluster path of `$DCOS_URI`. Replace these with appropriate values as needed.
-
-The `dcos kafka` CLI commands have a `--name` argument, allowing the user to specify which Kafka instance to query. The value defaults to `kafka`, so it's technically redundant to specify `--name=kafka` in these examples.
-
 
 ## Connection Information
 
