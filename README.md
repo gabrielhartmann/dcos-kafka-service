@@ -25,7 +25,6 @@ DC/OS Apache Kafka Service Guide
 [Connecting Clients](#connecting-clients)
 - [Using the DC/OS CLI](#using-the-dcos-cli)
 - [Using the REST API](#using-the-rest-api)
-- [REST API Authentication](#rest-api-authentication)
 - [Connection Info Response](#connection-info-response)
 - [Configuring the Kafka Client Library](#configuring-the-kafka-client-library)
 - [Configuring the Kafka Test Scripts](#configuring-the-kafka-test-scripts)
@@ -39,6 +38,7 @@ DC/OS Apache Kafka Service Guide
 - [Replacing a Permanently Failed Server](#replacing-a-permanently-failed-server)
 
 [API Reference](#api-reference)
+- [REST API Authentication](#rest-api-authentication)
 - [Connection Information](#connection-information)
 - [Broker Operations](#broker-operations)
 - [Topic Operations](#topic-operations)
@@ -83,7 +83,7 @@ DC/OS Kafka provides the following features:
 
 ## Quick Start
 
-*   Step 1. Install a Kafka cluster.
+*   Step 1. Install a Kafka cluster. If you are using open source DC/OS, install a Kafka cluster with the following command from the DC/OS CLI. If you are using Enterprise DC/OS, you may need to follow additional instructions. See the [Installing Kafka on Enterprise](#install-enterprise) section for more information.
 
         $ dcos package install kafka
 
@@ -129,9 +129,14 @@ See also [Connecting clients][3].
 <a name="install-and-customize"></a>
 # Install and Customize
 
+## About installing Kafka on Enterprise DC/OS
+
+ <a name="install-enterprise"></a>
+ In Enterprise DC/OS `strict` [security mode](https://docs.mesosphere.com/1.8/administration/installing/custom/configuration-parameters/#security), Kafka requires a service account. In `permissive`, a service account is optional. Only someone with `superuser` permission can create the service account. Refer to [Provisioning Kafka](https://docs.mesosphere.com/1.8/administration/id-and-access-mgt/service-auth/kafka-auth/) for instructions.
+
 ## Default Installation
 
-To start a basic test cluster with three brokers, run the following command on the DC/OS CLI:
+To start a basic test cluster with three brokers, run the following command on the DC/OS CLI. Enterprise DC/OS users must follow additional instructions. See the [About installing Kafka on Enterprise DC/OS](#install-enterprise) for more information.
 
     $ dcos package install kafka
 
@@ -725,22 +730,7 @@ The following command can be executed from the CLI in order to retrieve a set of
 
 ## The REST API
 
-<a name="#rest-auth"></a>
-### REST API Authentication
-
-Rest API requests must be authenticated. This authentication is only applicable for interacting with the Kafka REST API directly. You do not need the token to access the Kafka brokers themselves.
- 
-If you are using Enterprise DC/OS, follow these instructions to [create a service account and an authentication token](https://docs.mesosphere.com/1.8/administration/id-and-access-mgt/service-auth/custom-service-auth/). You can then configure your service to automatically refresh the authentication token when it expires. To get started more quickly, you can also [get the authentication token without a service account](https://docs.mesosphere.com/1.8/administration/id-and-access-mgt/iam-api/), but you will need to manually refresh the token.
-
-If you are using open source DC/OS, follow these instructions to [pass your HTTP API token to the DC/OS endpoint](https://dcos.io/docs/1.8/administration/id-and-access-mgt/auth-api/#passing-your-http-api-token-to-dc-os-endpoints). 
-
-Once you have the authentication token, you can store it in an environment variable and reference it in your REST API calls:
-
-```
-$ export AUTH_TOKEN=uSeR_t0k3n
-```
-
-The `curl` examples in this document assume that an auth token has been stored in an environment variable named `AUTH_TOKEN`.
+REST API requests must be authenticated. For more information, see the [REST API Authentication](#rest-auth) section of this document.
 
 ## Using the REST API
 
@@ -769,7 +759,7 @@ The response, for both the CLI and the REST API is as below.
         }
 
 
-This JSON array contains a list of valid brokers that the client can use to connect to the Kafka cluster. For availability reasons, it is best to specify multiple brokers in configuration of the client. Use the VIP to address any one of the Kafka brokers in the cluster. [Learn more about load balancing and VIPs in DC/OS](https://dcos.io/docs/1.8/usage/service-discovery/load-balancing-vips/).
+This JSON array contains a list of valid brokers that the client can use to connect to the Kafka cluster. For availability reasons, it is best to specify multiple brokers in configuration of the client. Use the VIP to address any one of the Kafka brokers in the cluster. [Learn more about load balancing and VIPs in DC/OS](https://docs.mesosphere.com/docs/1.8/usage/service-discovery/load-balancing-vips/).
 
 ## Configuring the Kafka Client Library
 
@@ -782,7 +772,7 @@ This JSON array contains a list of valid brokers that the client can use to conn
     </dependency>
 
 
-The above is the correct dependency for the Kafka Client Library to use with the DC/OS Cassandra service. After adding this dependency to your project, you should have access to the correct binary dependencies to interface with the Kafka Cluster.
+The above is the correct dependency for the Kafka Client Library to use with the DC/OS Kafka service. After adding this dependency to your project, you should have access to the correct binary dependencies to interface with the Kafka Cluster.
 
 ### Connecting the Kafka Client Library
 
@@ -888,9 +878,9 @@ Increase the `BROKER_COUNT` value via the DC/OS web interface as in any other co
 
 1.  In the DC/OS web interface, destroy the Kafka scheduler to be updated.
 
-2.  Verify that you no longer see it in the DC/OS web interface.
+1.  Verify that you no longer see it in the DC/OS web interface.
 
-3.  If you are using the enterprise edition, create an JSON options file with your latest configuration and set your plan strategy to "STAGE"
+1.  If you are using the enterprise edition, create an JSON options file with your latest configuration and set your plan strategy to "STAGE"
 
         {
             "service": {
@@ -989,6 +979,24 @@ For ongoing maintenance of the Kafka cluster itself, the Kafka service exposes a
 The examples here provide equivalent commands using both the [DC/OS CLI](https://github.com/mesosphere/dcos-cli) (with the `kafka` CLI module installed) and `curl`. These examples assume a service named `kafka` (the default), and the `curl` examples assume a DC/OS cluster path of `<dcos_url>`. Replace these with appropriate values as needed.
 
 The `dcos kafka` CLI commands have a `--name` argument, allowing the user to specify which Kafka instance to query. The value defaults to `kafka`, so it's technically redundant to specify `--name=kafka` in these examples.
+
+<a name="#rest-auth"></a>
+## REST API Authentication
+REST API requests must be authenticated. This authentication is only applicable for interacting with the Kafka REST API directly. You do not need the token to access the Kafka nodes themselves.
+ 
+If you are using Enterprise DC/OS, follow these instructions to [create a service account and an authentication token](https://docs.mesosphere.com/1.8/administration/id-and-access-mgt/service-auth/custom-service-auth/). You can then configure your service to automatically refresh the authentication token when it expires. To get started more quickly, you can also [get the authentication token without a service account](https://docs.mesosphere.com/1.8/administration/id-and-access-mgt/iam-api/), but you will need to manually refresh the token.
+
+If you are using open source DC/OS, follow these instructions to [pass your HTTP API token to the DC/OS endpoint](https://docs.mesosphere.com/1.8/administration/id-and-access-mgt/auth-api/#passing-your-http-api-token-to-dc-os-endpoints). 
+
+Once you have the authentication token, you can store it in an environment variable and reference it in your REST API calls:
+
+```
+$ export AUTH_TOKEN=uSeR_t0k3n
+```
+
+The `curl` examples in this document assume that an auth token has been stored in an environment variable named `AUTH_TOKEN`.
+
+If you are using Enterprise DC/OS, the security mode of your installation may also require the `--ca-cert` flag when making REST calls. Refer to [Obtaining and passing the DC/OS certificate in cURL requests](/1.8/administration/tls-ssl/#get-dcos-cert) for information on how to use the `--cacert` flag. [If your security mode is `disabled`](https://docs.mesosphere.com/1.8/administration/tls-ssl/), do not use the `--ca-cert` flag.
 
 ## Connection Information
 
