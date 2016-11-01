@@ -733,7 +733,7 @@ REST API requests must be authenticated. For more information, see the [REST API
 
 The following `curl` example demonstrates how to retrive connection a set of brokers to connect to using the REST API.
 
-    $ curl -H "Authorization: token=$AUTH_TOKEN" "$DCOS_URI/service/kafka/v1/connection"
+    $ curl -H "Authorization: token=$AUTH_TOKEN" "<dcos_url>/service/kafka/v1/connection"
 
 ### Connection Info Response
 
