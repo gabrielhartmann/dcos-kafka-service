@@ -24,6 +24,8 @@ public class BrokerConfiguration {
     private String overriderUri;
     @JsonProperty("port")
     private Long port;
+    @JsonProperty("jmx")
+    private JmxConfig jmx;
 
     public BrokerConfiguration() {
 
@@ -39,7 +41,8 @@ public class BrokerConfiguration {
             @JsonProperty("kafka_uri")String kafkaUri,
             @JsonProperty("java_uri")String javaUri,
             @JsonProperty("overrider_uri")String overriderUri,
-            @JsonProperty("port")Long port) {
+            @JsonProperty("port")Long port,
+            @JsonProperty("jmx")JmxConfig jmx) {
         this.cpus = cpus;
         this.mem = mem;
         this.heap = heap;
@@ -49,6 +52,7 @@ public class BrokerConfiguration {
         this.javaUri = javaUri;
         this.overriderUri = overriderUri;
         this.port = port;
+        this.jmx = jmx;
     }
 
     public double getCpus() {
@@ -132,6 +136,15 @@ public class BrokerConfiguration {
         this.port = port;
     }
 
+    public JmxConfig getJmx() {
+        return jmx;
+    }
+
+    @JsonProperty("jmx")
+    public void setJmx(JmxConfig jmx) {
+        this.jmx = jmx;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -151,12 +164,13 @@ public class BrokerConfiguration {
                 Objects.equals(kafkaUri, that.kafkaUri) &&
                 Objects.equals(javaUri, that.javaUri) &&
                 Objects.equals(overriderUri, that.overriderUri) &&
-                Objects.equals(port, that.port);
+                Objects.equals(port, that.port) &&
+                Objects.equals(jmx, that.jmx);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(cpus, mem, heap, disk, diskType, kafkaUri, javaUri, overriderUri, port);
+        return Objects.hash(cpus, mem, heap, disk, diskType, kafkaUri, javaUri, overriderUri, port, jmx);
     }
 
     @Override
@@ -171,6 +185,7 @@ public class BrokerConfiguration {
                 ", javaUri='" + javaUri + '\'' +
                 ", overriderUri='" + overriderUri + '\'' +
                 ", port='" + port + '\'' +
+                ", jmx='" + jmx + '\'' +
                 '}';
     }
 }

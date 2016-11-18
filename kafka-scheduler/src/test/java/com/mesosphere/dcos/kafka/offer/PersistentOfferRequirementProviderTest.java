@@ -2,6 +2,8 @@ package com.mesosphere.dcos.kafka.offer;
 
 import com.mesosphere.dcos.kafka.commons.KafkaTask;
 import com.mesosphere.dcos.kafka.config.HeapConfig;
+import com.mesosphere.dcos.kafka.config.JmxConfig;
+import com.mesosphere.dcos.kafka.config.KafkaJmxConfigUtils;
 import com.mesosphere.dcos.kafka.config.KafkaConfigState;
 import com.mesosphere.dcos.kafka.config.KafkaSchedulerConfiguration;
 import com.mesosphere.dcos.kafka.state.ClusterState;
@@ -153,6 +155,7 @@ public class PersistentOfferRequirementProviderTest {
     expectedEnvMap.put("KAFKA_OVERRIDE_PORT", portString);
     expectedEnvMap.put("KAFKA_OVERRIDE_BROKER_ID", String.valueOf(0));
     expectedEnvMap.put("KAFKA_HEAP_OPTS", "-Xms500M -Xmx500M");
+    expectedEnvMap.put("KAFKA_JMX_OPTS", KafkaJmxConfigUtils.toJavaOpts(new JmxConfig(true, KafkaTestUtils.testJMXPort, false, false)));
     expectedEnvMap.put("TASK_TYPE", KafkaTask.BROKER.name());
 
     System.out.println(envFromTask);
@@ -213,9 +216,11 @@ public class PersistentOfferRequirementProviderTest {
             "disk",
             2500);
     final HeapConfig oldHeapConfig = new HeapConfig(256);
+    final JmxConfig oldJmxConfig = new JmxConfig(true, 8010, false, false);
 
     TaskInfo oldTaskInfo = getTaskInfo(Arrays.asList(oldCpu, oldMem, oldDisk));
     oldTaskInfo = configKafkaHeapOpts(oldTaskInfo, oldHeapConfig);
+    oldTaskInfo = configKafkaJmxOpts(oldTaskInfo, oldJmxConfig);
 
     PersistentOfferRequirementProvider provider = new PersistentOfferRequirementProvider(state, configState, clusterState);
     OfferRequirement req = provider.getUpdateOfferRequirement(KafkaTestUtils.testConfigName, oldTaskInfo);
@@ -236,13 +241,15 @@ public class PersistentOfferRequirementProviderTest {
     List<Environment.Variable> variablesList = environment.getVariablesList();
     List<Environment.Variable> envVariables = new ArrayList<>(variablesList);
     envVariables.sort((v1, v2) -> v1.getName().compareTo(v2.getName()));
-    Assert.assertEquals(3, envVariables.size());
+    Assert.assertEquals(4, envVariables.size());
     Assert.assertEquals("KAFKA_HEAP_OPTS", envVariables.get(0).getName());
     Assert.assertEquals("-Xms500M -Xmx500M", envVariables.get(0).getValue());
-    Assert.assertEquals("KAFKA_OVERRIDE_PORT", envVariables.get(1).getName());
-    Assert.assertEquals("9092", envVariables.get(1).getValue());
-    Assert.assertEquals("KAFKA_VER_NAME", envVariables.get(2).getName());
-    Assert.assertEquals("test-kafka-ver-name", envVariables.get(2).getValue());
+    Assert.assertEquals("KAFKA_JMX_OPTS", envVariables.get(1).getName());
+    Assert.assertEquals("-Dcom.sun.management.jmxremote=true -Dcom.sun.management.jmxremote.port=9010 -Dcom.sun.management.jmxremote.registry.ssl=false -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.ssl.need.client.auth=false -Dcom.sun.management.jmxremote.authenticate=false", envVariables.get(1).getValue());
+    Assert.assertEquals("KAFKA_OVERRIDE_PORT", envVariables.get(2).getName());
+    Assert.assertEquals("9092", envVariables.get(2).getValue());
+    Assert.assertEquals("KAFKA_VER_NAME", envVariables.get(3).getName());
+    Assert.assertEquals("test-kafka-ver-name", envVariables.get(3).getValue());
   }
 
   private static Resource getResource(OfferRequirement req, String name) {
@@ -267,6 +274,21 @@ public class PersistentOfferRequirementProviderTest {
                             .newBuilder()
                             .setName("KAFKA_HEAP_OPTS")
                             .setValue("-Xms" + heapConfig.getSizeMb() + "M -Xmx" + heapConfig.getSizeMb() + "M")))
+            .build();
+    taskBuilder.setCommand(newCommand);
+    return TaskUtils.packTaskInfo(taskBuilder.build());
+  }
+
+  private TaskInfo configKafkaJmxOpts(TaskInfo taskInfo, JmxConfig jmxConfig) {
+    final CommandInfo oldCommand = taskInfo.getCommand();
+    final TaskInfo.Builder taskBuilder = TaskInfo.newBuilder(taskInfo);
+
+    final CommandInfo newCommand = CommandInfo.newBuilder(oldCommand)
+            .setEnvironment(Environment.newBuilder()
+                    .addVariables(Environment.Variable
+                            .newBuilder()
+                            .setName("KAFKA_JMX_OPTS")
+                            .setValue(KafkaJmxConfigUtils.toJavaOpts(jmxConfig))))
             .build();
     taskBuilder.setCommand(newCommand);
     return TaskUtils.packTaskInfo(taskBuilder.build());
