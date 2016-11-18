@@ -1,6 +1,5 @@
 import dcos.http
 import pytest
-import re
 import shakedown
 
 from tests.test_utils import (
@@ -29,7 +28,7 @@ def teardown_module(module):
     uninstall()
 
 
-@pytest.mark.upgrade
+@pytest.mark.sanity
 def test_upgrade():
     test_repo_name, test_repo_url = get_test_repo_info()
     test_version = get_pkg_version()
