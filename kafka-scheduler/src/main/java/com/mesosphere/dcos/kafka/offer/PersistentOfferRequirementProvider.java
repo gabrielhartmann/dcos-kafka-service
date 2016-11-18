@@ -190,6 +190,7 @@ public class PersistentOfferRequirementProvider implements KafkaOfferRequirement
         Map<String, String> envMap = OfferUtils.fromEnvironmentToMap(oldEnvironment);
         envMap.put("KAFKA_VER_NAME", kafkaConfiguration.getKafkaVerName());
         envMap.put("KAFKA_HEAP_OPTS", getKafkaHeapOpts(brokerConfig.getHeap()));
+        envMap.put("KAFKA_JMX_OPTS",  ConfigUtils.getKafkaJmxOpts(brokerConfig.getJmx()));
         Long port = config.getBrokerConfiguration().getPort();
         if (port != 0) {
             envMap.put(KafkaEnvConfigUtils.toEnvName("port"), Long.toString(port));
@@ -378,6 +379,7 @@ public class PersistentOfferRequirementProvider implements KafkaOfferRequirement
         envMap.put(KafkaEnvConfigUtils.toEnvName("listeners"), "PLAINTEXT://:" + port);
         envMap.put(KafkaEnvConfigUtils.toEnvName("port"), Long.toString(port));
         envMap.put("KAFKA_HEAP_OPTS", getKafkaHeapOpts(config.getBrokerConfiguration().getHeap()));
+        envMap.put("KAFKA_JMX_OPTS", ConfigUtils.getKafkaJmxOpts(config.getBrokerConfiguration().getJmx()));
         return CommandInfo.newBuilder()
                 .setValue(brokerCmd)
                 .setEnvironment(OfferUtils.environment(envMap))
