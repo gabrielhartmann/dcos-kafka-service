@@ -45,6 +45,9 @@ scheduler_configuration:
       remote_ssl: ${BROKER_JMX_REMOTE_SSL:-false}
       remote_authenticate: ${BROKER_JMX_REMOTE_AUTH:-false}
       remote_ssl_need_client_auth: ${BROKER_JMX_REMOTE_SSL_NEED_CLIENT_AUTH:-false}
+    statsd:
+      host: "${BROKER_STATSD_HOST:-}"
+      port: ${BROKER_STATSD_PORT:-0}
 
   kafka:
     kafka_advertise_host_ip: ${KAFKA_ADVERTISE_HOST_IP:-true}

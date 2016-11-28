@@ -2,12 +2,9 @@ package com.mesosphere.dcos.kafka.config;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import java.util.Objects;
 
 public class StatsdConfig {
-    private final Log log = LogFactory.getLog(StatsdConfig.class);
 
     @JsonProperty("host")
     private String host = "";
