@@ -191,6 +191,10 @@ public class PersistentOfferRequirementProvider implements KafkaOfferRequirement
         envMap.put("KAFKA_VER_NAME", kafkaConfiguration.getKafkaVerName());
         envMap.put("KAFKA_HEAP_OPTS", getKafkaHeapOpts(brokerConfig.getHeap()));
         envMap.put("KAFKA_JMX_OPTS",  KafkaJmxConfigUtils.toJavaOpts(brokerConfig.getJmx()));
+        if (brokerConfig.getStatsd().isReady()) {
+            envMap.put("STATSD_UDP_HOST", config.getBrokerConfiguration().getStatsd().getHost());
+            envMap.put("STATSD_UDP_PORT", config.getBrokerConfiguration().getStatsd().getPortString());
+        }
         Long port = config.getBrokerConfiguration().getPort();
         if (port != 0) {
             envMap.put(KafkaEnvConfigUtils.toEnvName("port"), Long.toString(port));
@@ -380,6 +384,10 @@ public class PersistentOfferRequirementProvider implements KafkaOfferRequirement
         envMap.put(KafkaEnvConfigUtils.toEnvName("port"), Long.toString(port));
         envMap.put("KAFKA_HEAP_OPTS", getKafkaHeapOpts(config.getBrokerConfiguration().getHeap()));
         envMap.put("KAFKA_JMX_OPTS", KafkaJmxConfigUtils.toJavaOpts(config.getBrokerConfiguration().getJmx()));
+        if (config.getBrokerConfiguration().getStatsd().isReady()) {
+            envMap.put("STATSD_UDP_HOST", config.getBrokerConfiguration().getStatsd().getHost());
+            envMap.put("STATSD_UDP_PORT", config.getBrokerConfiguration().getStatsd().getPortString());
+        }
         return CommandInfo.newBuilder()
                 .setValue(brokerCmd)
                 .setEnvironment(OfferUtils.environment(envMap))

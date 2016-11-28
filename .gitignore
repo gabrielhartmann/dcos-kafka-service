@@ -37,3 +37,8 @@ dcos-kafka-service.log.*
 # test
 integration/.cache/
 integration/env/
+
+
+*.tar.gz
+*.tgz
+upload.sh

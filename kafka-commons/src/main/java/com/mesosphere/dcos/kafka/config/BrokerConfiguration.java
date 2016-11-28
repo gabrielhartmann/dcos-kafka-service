@@ -26,6 +26,8 @@ public class BrokerConfiguration {
     private Long port;
     @JsonProperty("jmx")
     private JmxConfig jmx;
+    @JsonProperty("statsd")
+    private StatsdConfig statsd;
 
     public BrokerConfiguration() {
 
@@ -42,7 +44,8 @@ public class BrokerConfiguration {
             @JsonProperty("java_uri")String javaUri,
             @JsonProperty("overrider_uri")String overriderUri,
             @JsonProperty("port")Long port,
-            @JsonProperty("jmx")JmxConfig jmx) {
+            @JsonProperty("jmx")JmxConfig jmx,
+            @JsonProperty("statsd")StatsdConfig statsd) {
         this.cpus = cpus;
         this.mem = mem;
         this.heap = heap;
@@ -53,6 +56,7 @@ public class BrokerConfiguration {
         this.overriderUri = overriderUri;
         this.port = port;
         this.jmx = jmx;
+        this.statsd = statsd;
     }
 
     public double getCpus() {
@@ -145,6 +149,15 @@ public class BrokerConfiguration {
         this.jmx = jmx;
     }
 
+    public StatsdConfig getStatsd() {
+        return statsd;
+    }
+
+    @JsonProperty("statsd")
+    public void setStatsd(StatsdConfig statsd) {
+        this.statsd = statsd;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -165,12 +178,13 @@ public class BrokerConfiguration {
                 Objects.equals(javaUri, that.javaUri) &&
                 Objects.equals(overriderUri, that.overriderUri) &&
                 Objects.equals(port, that.port) &&
-                Objects.equals(jmx, that.jmx);
+                Objects.equals(jmx, that.jmx) &&
+                Objects.equals(statsd, that.statsd);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(cpus, mem, heap, disk, diskType, kafkaUri, javaUri, overriderUri, port, jmx);
+        return Objects.hash(cpus, mem, heap, disk, diskType, kafkaUri, javaUri, overriderUri, port, jmx, statsd);
     }
 
     @Override
@@ -186,6 +200,7 @@ public class BrokerConfiguration {
                 ", overriderUri='" + overriderUri + '\'' +
                 ", port='" + port + '\'' +
                 ", jmx='" + jmx + '\'' +
+                ", statsd='" + statsd + '\'' +
                 '}';
     }
 }

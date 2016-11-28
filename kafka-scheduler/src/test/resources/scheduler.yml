@@ -34,6 +34,9 @@ scheduler_configuration:
       size_mb: ${BROKER_HEAP_MB:-2048}
     jmx:
       remote_port: 9010
+    statsd:
+      host: "localhost"
+      port: 8123
     disk: ${BROKER_DISK:-5000}
     disk_type: ${DISK_TYPE:-ROOT}
     java_uri: ${JAVA_URI}

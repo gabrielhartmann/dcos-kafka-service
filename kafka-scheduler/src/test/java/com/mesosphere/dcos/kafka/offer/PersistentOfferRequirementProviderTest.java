@@ -157,6 +157,8 @@ public class PersistentOfferRequirementProviderTest {
     expectedEnvMap.put("KAFKA_HEAP_OPTS", "-Xms500M -Xmx500M");
     expectedEnvMap.put("KAFKA_JMX_OPTS", KafkaJmxConfigUtils.toJavaOpts(new JmxConfig(true, KafkaTestUtils.testJMXPort, false, false)));
     expectedEnvMap.put("TASK_TYPE", KafkaTask.BROKER.name());
+    expectedEnvMap.put("STATSD_UDP_HOST", KafkaTestUtils.testStatsdHost);
+    expectedEnvMap.put("STATSD_UDP_PORT", Integer.toString(KafkaTestUtils.testStatsdPort));
 
     System.out.println(envFromTask);
 
@@ -241,7 +243,7 @@ public class PersistentOfferRequirementProviderTest {
     List<Environment.Variable> variablesList = environment.getVariablesList();
     List<Environment.Variable> envVariables = new ArrayList<>(variablesList);
     envVariables.sort((v1, v2) -> v1.getName().compareTo(v2.getName()));
-    Assert.assertEquals(4, envVariables.size());
+    Assert.assertEquals(6, envVariables.size());
     Assert.assertEquals("KAFKA_HEAP_OPTS", envVariables.get(0).getName());
     Assert.assertEquals("-Xms500M -Xmx500M", envVariables.get(0).getValue());
     Assert.assertEquals("KAFKA_JMX_OPTS", envVariables.get(1).getName());
@@ -250,6 +252,10 @@ public class PersistentOfferRequirementProviderTest {
     Assert.assertEquals("9092", envVariables.get(2).getValue());
     Assert.assertEquals("KAFKA_VER_NAME", envVariables.get(3).getName());
     Assert.assertEquals("test-kafka-ver-name", envVariables.get(3).getValue());
+    Assert.assertEquals("STATSD_UDP_HOST", envVariables.get(4).getName());
+    Assert.assertEquals("localhost", envVariables.get(4).getValue());
+    Assert.assertEquals("STATSD_UDP_PORT", envVariables.get(5).getName());
+    Assert.assertEquals("8124", envVariables.get(5).getValue());
   }
 
   private static Resource getResource(OfferRequirement req, String name) {
